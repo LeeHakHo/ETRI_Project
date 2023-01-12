@@ -39,10 +39,13 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+#image list를 입력받아서 TSBA로 prediction 결과 list를 return
 def TSBA_result(opt, image_list):
-    print(len(image_list))
+    #print(len(image_list))
+    j =0
     cudnn.benchmark = True
     cudnn.deterministic = True
+    label_list = []
 
     #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     #os.environ['CUDA_VISIBLE_DEVICES'] = "2"
@@ -108,8 +111,11 @@ def TSBA_result(opt, image_list):
         #        del checkpoint[key]
         #model.load_state_dict(checkpoint)
 
+        #모델 불러오기
         model = torch.nn.DataParallel(model)
         model.load_state_dict(torch.load(pth_list[i], map_location=device))
+        #model = torch.load(pth_list[i])
+        #model.eval()
 
         # prepare data. two demo images from https://github.com/bgshih/crnn#run-demo
         AlignCollate_demo = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
@@ -155,7 +161,7 @@ def TSBA_result(opt, image_list):
                     preds_str = converter.decode(preds_index, preds_size)
 
                 else:
-                    preds = model(image, text_for_pred, is_train=False)
+                    preds = model.module(image, text_for_pred, is_train=False)
                     # print(image.shape, text_for_pred.shape, preds)
 
                     # select max probabilty (greedy decoding) then decode index to character
@@ -167,28 +173,30 @@ def TSBA_result(opt, image_list):
                 preds_max_prob, _ = preds_prob.max(dim=2)
 
                 cnt = 0
-                for img_name, pred, pred_max_prob in zip(img_name, preds_str, preds_max_prob):
+                for pred, pred_max_prob in zip(preds_str, preds_max_prob):
                     if 'Attn' in opt.Prediction:
                         pred_EOS = pred.find('[s]')
                         pred = pred[:pred_EOS]  # prune after "end of sentence" token ([s])
                         pred_max_prob = pred_max_prob[:pred_EOS]
+                        label_list.append(pred)
 
                     # calculate confidence score (= multiply of pred_max_prob)
                     if (i == 0):
-                        img_name_list.append(img_name.split('/')[-1])
+                        img_name_list.append(str(j))
                     try:
                         confidence_score = pred_max_prob.cumprod(dim=0)[-1]
                     except Exception as e:
                         print(e)
                         cnt += 1
                         continue
-                    print(f'{img_name:25s}\t{pred:25s}\t{confidence_score:0.4f}')
+                    print(f'{str(j):25s}\t{pred:25s}\t{confidence_score:0.4f}')
                     os.makedirs(f"./demo/{opt.current_time}/{opt.exp_name}/demo/result", exist_ok=True)
                     current_model_confidence_score_list.append(confidence_score)
+                    j += 1
         confidence_score_list.append(current_model_confidence_score_list)
         model_preds_list.append(current_model_preds_list)
 
-    return model_preds_list
+    return label_list
 
 def copyStateDict(state_dict):
     if list(state_dict.keys())[0].startswith("module"):
@@ -212,42 +220,39 @@ def saveCropImg(bbox, img):
     for p1, p2, p3, p4 in bbox:
         p = []
         #cropped_image = img[Y:Y + H, X:X + W]
-        p1[1] -= 20
-        p3[1] += 20
-        p1[0] -= 20
-        p3[0] += 20
+        #p1[1] -= 10
+        #p3[1] += 10
+        #p1[0] -= 10
+        #p3[0] += 10
         if int(p1[1]) <= 0:
-            p1[1] = 1
+            p1[1] = 0
         if int(p3[1]) <= 0:
-            p3[1] = 1
+            p3[1] = 0
         if int(p1[0]) <= 0:
-            p1[0] = 1
+            p1[0] = 0
         if int(p3[0]) <= 0:
-            p3[0] = 1
+            p3[0] = 0
 
         cropped_image = img[int(p1[1]):int(p3[1]), int(p1[0]):int(p3[0])]
-        p.append(int(p1[1]))
-        p.append(int(p3[1]))
         p.append(int(p1[0]))
+        p.append(int(p3[1]))
         p.append(int(p3[0]))
+        p.append(int(p1[1]))
         p_list.append(p)
         # cropped_image = img
         #resized_image = cv2.resize(cropped_image, (224, 224))
         image_list.append(cropped_image)
-        # filename, file_ext = os.path.splitext(os.path.basename(image_path))
-        # i = i + 1
-        # num = str(i).zfill(3)
-        # print(filename + '_' + num + '.jpg', int(p1[0]), int(p2[0]), int(p1[1]), int(p3[1]),
-        #      type(resized_image))
-        # cv2.imwrite(result_folder + filename + '_' + num + '.jpg', resized_image)
-        # TSBA_result_save(args, resized_image, image_path)
-        #print(label)
+
         i = i + 1
     label_list = TSBA_result(args, image_list)
-    for label, p in label_list, p_list:
-        img = bb.add(originImg, int(p[0]), int(p[1]), int(p[2]), int(p[3]), str(label))
+    #label_list = list(reversed(label_list))
+    #for label, p in label_list, p_list:
+    #for p, label in zip(p_list, label_list):
+    for k in range(i):
+        print(int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), str(label_list[k]))
+        bb.add(originImg, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k])
 
-    cv2.imwrite('./result/image/'+ str(i) +'.jpg', img)
+    cv2.imwrite('./result/image/'+ str(i) +'.jpg', originImg)
         #file_utils.saveResult(image_path, image[:, :, ::-1], polys, dirname=result_folder)
 
 

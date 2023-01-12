@@ -64,7 +64,7 @@ class Batch_Balanced_Dataset(object):
 
             _data_loader = torch.utils.data.DataLoader(
                 _dataset, batch_size=_batch_size,
-                shuffle=True,
+                shuffle=False,
                 num_workers=int(opt.workers),
                 collate_fn=_AlignCollate, pin_memory=True)
             self.data_loader_list.append(_data_loader)
