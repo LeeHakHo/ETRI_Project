@@ -346,8 +346,6 @@ class CustomDataset(Dataset):
         self.opt = opt
         self.image_path_list = []
         self.image_list = image_list
-
-        #self.image_list = natsorted(self.image_list)
         self.nSamples = len(self.image_list)
 
     def __len__(self):
@@ -357,16 +355,12 @@ class CustomDataset(Dataset):
 
         try:
             if self.opt.rgb:
-                #img = Image.open(self.image_path_list[index]).convert('RGB')  # for color image
                 img = self.image_list[index]
                 img = Image.fromarray(img)
             else:
                 img = self.image_list[index][0]
                 img = Image.fromarray(img)
                 img = img.convert('L')
-                #img_output.append(self.image_list[index][1]) #index of image input for matchting with bbox
-                #covert_tensor = transforms.ToTensor()
-                #image_tensors = covert_tensor(image_tensors)
 
         except IOError:
             print(f'Corrupted image for {index}')
@@ -374,8 +368,5 @@ class CustomDataset(Dataset):
             if self.opt.rgb:
                 img = Image.new('RGB', (self.opt.imgW, self.opt.imgH))
             else:
-                #img = Image.new('L', (self.opt.imgW, self.opt.imgH))
                 print("error")
-
-        #print(self.image_list[index][1], "!")
         return (img, self.image_list[index][1])

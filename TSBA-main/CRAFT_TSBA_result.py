@@ -1,9 +1,11 @@
+#python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path <- command
+
+# -*- coding: utf-8 -*-
 from utils import CTCLabelConverter, AttnLabelConverter
 from dataset import RawDataset, AlignCollate, CustomDataset
 from model import Model
 import torch.nn.functional as F
 
-# -*- coding: utf-8 -*-
 import os
 import time
 import argparse
@@ -26,9 +28,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-#image list를 입력받아서 TSBA로 prediction 결과 list를 return
-def TSBA_result(opt, image_list):
-    j =0
+#input image list, return prediction_result_list with TSBA.pth
+def TSBA(opt, image_list):
+    j = 0
     cudnn.benchmark = True
     cudnn.deterministic = True
     label_list = []
@@ -175,9 +177,9 @@ def copyStateDict(state_dict):
 def str2bool(v):
     return v.lower() in ("yes", "y", "true", "t", "1")
 
-def saveCropImg(bbox, img, image_name):
+def TSBA_result(bbox, img, image_name):
     i = 0
-    originImg = img
+    #originImg = img
     image_list = []
     p_list = []
     for p1, p2, p3, p4 in bbox:
@@ -199,7 +201,7 @@ def saveCropImg(bbox, img, image_name):
         cropped_image = img[int(p1[1]):int(p3[1]), int(p1[0]):int(p3[0])]
         image_input = []
         image_input.append(cropped_image)
-        image_input.append(i)
+        image_input.append(i) #index for matching images and labels when shuffled, although not used
         p.append(int(p1[0]))
         p.append(int(p3[1]))
         p.append(int(p3[0]))
@@ -208,15 +210,17 @@ def saveCropImg(bbox, img, image_name):
         image_list.append(image_input)
 
         i = i + 1
-    label_list = TSBA_result(args, image_list)
+    label_list = TSBA(args, image_list)
     for k in range(i):
-        bb.add(originImg, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0])
+        bb.add(img, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0])
 
-    cv2.imwrite('./result/image/'+image_name + "_result" +'.jpg', originImg)
-        #file_utils.saveResult(image_path, image[:, :, ::-1], polys, dirname=result_folder)
+    cv2.imwrite('./result/image/'+image_name + "_result" +'.jpg', img)
+    #file_utils.saveResult(image_path, image[:, :, ::-1], polys, dirname=result_folder)
 
 
 #python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path <- command
+
+#args for CRAFT
 parser = argparse.ArgumentParser(description='CRAFT Text Detection')
 parser.add_argument('--trained_model', default='CRAFT_weights/craft_mlt_25k.pth', type=str, help='pretrained model')
 parser.add_argument('--text_threshold', default=0.7, type=float, help='text confidence threshold')
@@ -231,17 +235,15 @@ parser.add_argument('--test_folder', default='/home/ohh/dataset/korean_dataset/V
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 
-
-#TSBA/
+#args for TSBA
 parser.add_argument('--model1', default='/home/ohh/PycharmProject/TSBA-main/saved_models/TPS-SENet-BiLSTM-Attn-Seed1111_0111_2/best_accuracy.pth', help='Path to the first model pth file to ensemble')
 parser.add_argument('--model2', default='SENet.pth', help='Path to the second model pth file to ensemble')
 parser.add_argument('--model3', default='SENetL.pth', help='Path to the third model pth file to ensemble')
 parser.add_argument('--current_time', required=False, help='the current time')
 parser.add_argument('--exp_name', default='result_0111_1', help='Where to store logs and results')
-parser.add_argument('--image_folder', default='', #/home/ohh/PycharmProject/CRAFT-pytorch-master/result/crop_image/
-                    help='path to image_folder which contains text images')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batch_size', type=int, default=8, help='input batch size')
+#parser.add_argument('--image_folder', default='', help='path to image_folder which contains text images.') #but Not used in CRAFT-TSBA'
 # parser.add_argument('--saved_model', required=False, help="path to saved_model to evaluation")
 """ Data processing """
 parser.add_argument('--batch_max_length', type=int, default=15, help='maximum-label-length')
@@ -270,12 +272,7 @@ parser.add_argument('--mask_mode', type=int, default=3, help='Add the Edge Featu
 args = parser.parse_args()
 
 """ For test images in a folder """
-#image_list, _, _ = file_utils.get_files(args.test_folder)
 image_list, _, _ = get_files(args.test_folder)
-
-#result_folder = './result/crop_image/'
-#if not os.path.isdir(result_folder):
-#    os.mkdir(result_folder)
 
 def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, refine_net=None):
     t0 = time.time()
@@ -374,12 +371,12 @@ if __name__ == '__main__':
         image_name = image_name
         bboxes, polys, score_text = test_net(net, image, args.text_threshold, args.link_threshold, args.low_text, args.cuda, args.poly, refine_net)
 
-        # save score text
+        # save score text and detection image
         #filename, file_ext = os.path.splitext(os.path.basename(image_path))
         #mask_file = result_folder + "/res_" + filename + "_mask.jpg"
         #cv2.imwrite(mask_file, score_text)
-
         #file_utils.saveResult(image_path, image[:,:,::-1], polys, dirname=result_folder)
-        image = saveCropImg(bboxes, image, image_name)
+
+        TSBA_result(bboxes, image, image_name)
 
     print("elapsed time : {}s".format(time.time() - t))
