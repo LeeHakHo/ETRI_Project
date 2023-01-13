@@ -1,36 +1,23 @@
-#-*- coding: utf-8 -*-
-#--exp_name /  --Transformation TPS  --SequenceModeling BiLSTM --Prediction Attn
-
 from utils import CTCLabelConverter, AttnLabelConverter
 from dataset import RawDataset, AlignCollate, CustomDataset
 from model import Model
 import torch.nn.functional as F
 
 # -*- coding: utf-8 -*-
-import sys
 import os
 import time
 import argparse
 from bounding_box import bounding_box as bb
 import torch
-#import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
-from PIL import Image
-
 import cv2
-from skimage import io
 import numpy as np
 from CRAFT_modules.craft_utils import adjustResultCoordinates, getDetBoxes
 from CRAFT_modules.imgproc import loadImage, resize_aspect_ratio, normalizeMeanVariance, cvt2HeatmapImg
 from CRAFT_modules.file_utils import get_files
-#from CRAFT_modules.TSBA_modules import TSBA_result
-#from CRAFT_modules.TSBA_modules_save import TSBA_result_save
 
-#from . import CR
-import json
-import zipfile
 from CRAFT_modules.craft import CRAFT
 from collections import OrderedDict
 
@@ -41,16 +28,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #image list를 입력받아서 TSBA로 prediction 결과 list를 return
 def TSBA_result(opt, image_list):
-    #print(len(image_list))
     j =0
     cudnn.benchmark = True
     cudnn.deterministic = True
     label_list = []
-
-    #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    #os.environ['CUDA_VISIBLE_DEVICES'] = "2"
-
-    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     """
     Inference each model and create submission with max confidence scored preds
 
@@ -59,15 +40,15 @@ def TSBA_result(opt, image_list):
         imgW : each models W parameter
         FeatureExtraction : each models Feature Extractor paramter
     """
+    # for ensemble
+    # pth_list = [opt.model1, opt.model2, opt.model3]
+    # imgH= [224,224,224]
+    # imgW= [224,224,224]
+    # FeatureExtraction = ['SENet', 'SENet', 'SENetL']
 
-    #print(opt)
-    #pth_list = [opt.model1, opt.model2, opt.model3]
     pth_list = [opt.model1]
-    #imgH= [224,224,224]
-    #imgW= [224,224,224]
     imgH= [224]
     imgW= [224]
-    #FeatureExtraction = ['SENet', 'SENet', 'SENetL']
     FeatureExtraction = ['SENet']
 
     """
@@ -81,7 +62,6 @@ def TSBA_result(opt, image_list):
         opt.imgH = imgH[i]
         opt.imgW = imgW[i]
         opt.FeatureExtraction = FeatureExtraction[i]
-        #print(i)
         if 'CTC' in opt.Prediction:
             converter = CTCLabelConverter(opt.character)
         else:
@@ -91,31 +71,18 @@ def TSBA_result(opt, image_list):
         if opt.rgb:
             opt.input_channel = 3
         model = Model(opt)
-        #print('model input parameters', opt.imgH, opt.imgW, opt.num_fiducial, opt.input_channel, opt.output_channel,
-        #      opt.hidden_size, opt.num_class, opt.batch_max_length, opt.Transformation, opt.FeatureExtraction,
-        #      opt.SequenceModeling, opt.Prediction)
+        print('model input parameters', opt.imgH, opt.imgW, opt.num_fiducial, opt.input_channel, opt.output_channel,
+              opt.hidden_size, opt.num_class, opt.batch_max_length, opt.Transformation, opt.FeatureExtraction,
+              opt.SequenceModeling, opt.Prediction)
         #model = torch.nn.DataParallel(model).to(device)
         model = model.to(device)
+
         # load model
         print('loading pretrained model from %s' % pth_list[i])
-
-        #saved_checkpoint = torch.load(pth_list[i], map_location=device)
-        #model.load_state_dict(saved_checkpoint, strict=False)
-
-        #print(model.load_state_dict(torch.load(pth_list[i])))
-
-        #checkpoint = torch.load(pth_list[i], map_location=device)
-        #for key in list(checkpoint.keys()):
-        #    if 'model.' in key:
-        #        checkpoint[key.replace('model.', '')] = checkpoint[key]
-        #        del checkpoint[key]
-        #model.load_state_dict(checkpoint)
 
         #모델 불러오기
         model = torch.nn.DataParallel(model)
         model.load_state_dict(torch.load(pth_list[i], map_location=device))
-        #model = torch.load(pth_list[i])
-        #model.eval()
 
         # prepare data. two demo images from https://github.com/bgshih/crnn#run-demo
         AlignCollate_demo = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
@@ -135,16 +102,8 @@ def TSBA_result(opt, image_list):
 
         current_model_confidence_score_list = []
         current_model_preds_list = []
-        for image_tensors, image_path_list in demo_loader:
+        for image_tensors, image_index in demo_loader:
             with torch.no_grad():
-                # preprocessing
-                # x = normalizeMeanVariance(image)
-                #image = Image.fromarray(image)
-                #image_tensors = image.convert('L')
-                #covert_tensor = transforms.ToTensor()
-                #image_tensors = covert_tensor(image_tensors)
-                #image_tensors = Variable(image_tensors.unsqueeze(0))
-
                 batch_size = image_tensors.size(0)
                 image = image_tensors.to(device)
                 # For max length prediction
@@ -162,7 +121,6 @@ def TSBA_result(opt, image_list):
 
                 else:
                     preds = model.module(image, text_for_pred, is_train=False)
-                    # print(image.shape, text_for_pred.shape, preds)
 
                     # select max probabilty (greedy decoding) then decode index to character
                     _, preds_index = preds.max(2)
@@ -173,12 +131,17 @@ def TSBA_result(opt, image_list):
                 preds_max_prob, _ = preds_prob.max(dim=2)
 
                 cnt = 0
+                k = 0
                 for pred, pred_max_prob in zip(preds_str, preds_max_prob):
                     if 'Attn' in opt.Prediction:
                         pred_EOS = pred.find('[s]')
                         pred = pred[:pred_EOS]  # prune after "end of sentence" token ([s])
                         pred_max_prob = pred_max_prob[:pred_EOS]
-                        label_list.append(pred)
+                        pred_output = []
+                        pred_output.append(pred)
+                        pred_output.append(image_index[k])
+                        label_list.append(pred_output)
+                        k += 1
 
                     # calculate confidence score (= multiply of pred_max_prob)
                     if (i == 0):
@@ -189,7 +152,7 @@ def TSBA_result(opt, image_list):
                         print(e)
                         cnt += 1
                         continue
-                    print(f'{str(j):25s}\t{pred:25s}\t{confidence_score:0.4f}')
+                    print(f'{str(pred_output[1]):25s}\t{pred_output[0]:25s}\t{confidence_score:0.4f}')
                     os.makedirs(f"./demo/{opt.current_time}/{opt.exp_name}/demo/result", exist_ok=True)
                     current_model_confidence_score_list.append(confidence_score)
                     j += 1
@@ -212,7 +175,7 @@ def copyStateDict(state_dict):
 def str2bool(v):
     return v.lower() in ("yes", "y", "true", "t", "1")
 
-def saveCropImg(bbox, img):
+def saveCropImg(bbox, img, image_name):
     i = 0
     originImg = img
     image_list = []
@@ -234,25 +197,22 @@ def saveCropImg(bbox, img):
             p3[0] = 0
 
         cropped_image = img[int(p1[1]):int(p3[1]), int(p1[0]):int(p3[0])]
+        image_input = []
+        image_input.append(cropped_image)
+        image_input.append(i)
         p.append(int(p1[0]))
         p.append(int(p3[1]))
         p.append(int(p3[0]))
         p.append(int(p1[1]))
-        p_list.append(p)
-        # cropped_image = img
-        #resized_image = cv2.resize(cropped_image, (224, 224))
-        image_list.append(cropped_image)
+        p_list.append(p) #bbox point list
+        image_list.append(image_input)
 
         i = i + 1
     label_list = TSBA_result(args, image_list)
-    #label_list = list(reversed(label_list))
-    #for label, p in label_list, p_list:
-    #for p, label in zip(p_list, label_list):
     for k in range(i):
-        print(int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), str(label_list[k]))
-        bb.add(originImg, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k])
+        bb.add(originImg, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0])
 
-    cv2.imwrite('./result/image/'+ str(i) +'.jpg', originImg)
+    cv2.imwrite('./result/image/'+image_name + "_result" +'.jpg', originImg)
         #file_utils.saveResult(image_path, image[:, :, ::-1], polys, dirname=result_folder)
 
 
@@ -269,8 +229,7 @@ parser.add_argument('--poly', default=False, action='store_true', help='enable p
 parser.add_argument('--show_time', default=False, action='store_true', help='show processing time')
 parser.add_argument('--test_folder', default='/home/ohh/dataset/korean_dataset/Validation/image/sample/', type=str, help='folder path to input images')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
-parser.add_argument('--refiner_model', default='', type=str, help='pretrained refiner model')
-#parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
+parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 
 
 #TSBA/
@@ -411,7 +370,8 @@ if __name__ == '__main__':
     for k, image_path in enumerate(image_list):
         print("Test image {:d}/{:d}: {:s}".format(k+1, len(image_list), image_path), end='\r')
         image = loadImage(image_path)
-
+        image_name, file_ext = os.path.splitext(os.path.basename(image_path))
+        image_name = image_name
         bboxes, polys, score_text = test_net(net, image, args.text_threshold, args.link_threshold, args.low_text, args.cuda, args.poly, refine_net)
 
         # save score text
@@ -420,6 +380,6 @@ if __name__ == '__main__':
         #cv2.imwrite(mask_file, score_text)
 
         #file_utils.saveResult(image_path, image[:,:,::-1], polys, dirname=result_folder)
-        image = saveCropImg(bboxes, image)
+        image = saveCropImg(bboxes, image, image_name)
 
     print("elapsed time : {}s".format(time.time() - t))
