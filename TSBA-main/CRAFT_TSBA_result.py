@@ -212,7 +212,7 @@ def TSBA_result(bbox, img, image_name):
         i = i + 1
     label_list = TSBA(args, image_list)
     for k in range(i):
-        bb.add(img, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0])
+        bb.add(img, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0]) # if you want use korean label, save ttf file in bounding_box.py
 
     cv2.imwrite('./result/image/'+image_name + "_result" +'.jpg', img)
     #file_utils.saveResult(image_path, image[:, :, ::-1], polys, dirname=result_folder)
