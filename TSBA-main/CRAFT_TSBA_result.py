@@ -182,23 +182,25 @@ def TSBA_result(bbox, img, image_name):
     #originImg = img
     image_list = []
     p_list = []
+
+    #bbox extension
+    img_h, img_w, img_c = img.shape
     for p1, p2, p3, p4 in bbox:
         p = []
-        #cropped_image = img[Y:Y + H, X:X + W]
-        #p1[1] -= 10
-        #p3[1] += 10
-        #p1[0] -= 10
-        #p3[0] += 10
-        if int(p1[1]) <= 0:
+        p1[1] -= 10
+        p3[1] += 10
+        p1[0] -= 10
+        p3[0] += 10
+        if int(p1[1]) < 0:
             p1[1] = 0
-        if int(p3[1]) <= 0:
-            p3[1] = 0
-        if int(p1[0]) <= 0:
+        if int(p3[1]) > img_h:
+            p3[1] = img_h
+        if int(p1[0]) < 0:
             p1[0] = 0
-        if int(p3[0]) <= 0:
-            p3[0] = 0
+        if int(p3[0]) > img_w:
+            p3[0] = img_w
 
-        cropped_image = img[int(p1[1]):int(p3[1]), int(p1[0]):int(p3[0])]
+        cropped_image = img[int(p1[1]):int(p3[1]), int(p1[0]):int(p3[0])] #cropped_image = img[Y:Y + H, X:X + W]
         image_input = []
         image_input.append(cropped_image)
         image_input.append(i) #index for matching images and labels when shuffled, although not used
