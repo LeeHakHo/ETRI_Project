@@ -23,9 +23,6 @@ from CRAFT_modules.file_utils import get_files
 from CRAFT_modules.craft import CRAFT
 from collections import OrderedDict
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4"
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #input image list, return prediction_result_list with TSBA.pth
@@ -139,17 +136,20 @@ def TSBA(opt, image_list):
                         pred_EOS = pred.find('[s]')
                         pred = pred[:pred_EOS]  # prune after "end of sentence" token ([s])
                         pred_max_prob = pred_max_prob[:pred_EOS]
-                        pred_output = []
-                        pred_output.append(pred)
-                        pred_output.append(image_index[k])
-                        label_list.append(pred_output)
-                        k += 1
 
                     # calculate confidence score (= multiply of pred_max_prob)
                     if (i == 0):
                         img_name_list.append(str(j))
                     try:
                         confidence_score = pred_max_prob.cumprod(dim=0)[-1]
+
+                        pred_output = []
+                        pred_output.append(pred)
+                        pred_output.append(image_index[k])
+                        pred_output.append(confidence_score)
+                        label_list.append(pred_output)
+                        k += 1
+
                     except Exception as e:
                         print(e)
                         cnt += 1
@@ -187,10 +187,10 @@ def TSBA_result(bbox, img, image_name):
     img_h, img_w, img_c = img.shape
     for p1, p2, p3, p4 in bbox:
         p = []
-        p1[1] -= 10
-        p3[1] += 10
-        p1[0] -= 10
-        p3[0] += 10
+        p1[1] = p1[1] * 0.98
+        p3[1] = p3[1] * 1.02
+        p1[0] = p1[0] * 0.98
+        p3[0] = p3[0] * 1.02
         if int(p1[1]) < 0:
             p1[1] = 0
         if int(p3[1]) > img_h:
@@ -199,6 +199,13 @@ def TSBA_result(bbox, img, image_name):
             p1[0] = 0
         if int(p3[0]) > img_w:
             p3[0] = img_w
+
+        #test to merge bbox
+        # print(p1[1],"/",p3[1],"/",p1[0],"/",p3[0])
+        # p1[1] = 438
+        # p3[1] = 624
+        # p1[0] = 938
+        # p3[0] = 3616
 
         cropped_image = img[int(p1[1]):int(p3[1]), int(p1[0]):int(p3[0])] #cropped_image = img[Y:Y + H, X:X + W]
         image_input = []
@@ -214,8 +221,10 @@ def TSBA_result(bbox, img, image_name):
         i = i + 1
     label_list = TSBA(args, image_list)
     for k in range(i):
-        bb.add(img, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0]) # if you want use korean label, save ttf file in bounding_box.py
+        #if label_list[k][2] >= 0.4:
+            bb.add(img, int(p_list[k][0]), int(p_list[k][1]), int(p_list[k][2]), int(p_list[k][3]), label_list[k][0]) # if you want use korean label, save ttf file in bounding_box.py
 
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     cv2.imwrite('./result/image/'+image_name + "_result" +'.jpg', img)
     #file_utils.saveResult(image_path, image[:, :, ::-1], polys, dirname=result_folder)
 
@@ -238,7 +247,7 @@ parser.add_argument('--refine', default=False, action='store_true', help='enable
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 
 #args for TSBA
-parser.add_argument('--model1', default='/home/ohh/PycharmProject/TSBA-main/saved_models/TPS-SENet-BiLSTM-Attn-Seed1111_0111_2/best_accuracy.pth', help='Path to the first model pth file to ensemble')
+parser.add_argument('--model1', default='/home/ohh/PycharmProject/TSBA-main/saved_models/TPS-SENet-BiLSTM-Attn-Seed1111_ST_MJ/best_accuracy.pth', help='Path to the first model pth file to ensemble')
 parser.add_argument('--model2', default='SENet.pth', help='Path to the second model pth file to ensemble')
 parser.add_argument('--model3', default='SENetL.pth', help='Path to the third model pth file to ensemble')
 parser.add_argument('--current_time', required=False, help='the current time')

@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import cv2
 import torch.nn as nn
 import torch
 from modules.transformation import TPS_SpatialTransformerNetwork
@@ -75,8 +75,10 @@ class Model(nn.Module):
 
     def forward(self, input,text, is_train=True):
         """ Transformation stage """
+        #cv2.imwrite("/home/ohh/PycharmProject/TSBA-main/result/tps_image/input_result" + text + '.jpg', input)
         if not self.stages['Trans'] == "None":
             input = self.Transformation(input)
+            #cv2.imwrite("/home/ohh/PycharmProject/TSBA-main/result/tps_image/trans_result" + text + '.jpg', input)
         """ Feature extraction stage """
         visual_feature = self.FeatureExtraction(input)
 
