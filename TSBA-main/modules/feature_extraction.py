@@ -1,4 +1,5 @@
 #-*- coding: utf-8 -*-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -235,6 +236,17 @@ class SEBasicBlock(nn.Module):
 
         return out
 
+
+def language_classifier(x, block, num_classes):
+    avgpool = nn.AdaptiveAvgPool2d((1, 1))
+    fc = nn.Linear(512 * block.expansion, num_classes)
+    x = avgpool(x)
+    x = torch.flatten((x,1))
+    x = fc(x)
+
+    return x
+
+
 class ResNet(nn.Module):
 
     def __init__(self, input_channel, output_channel, block, layers):
@@ -279,6 +291,7 @@ class ResNet(nn.Module):
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
+        self.block = block
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(self.inplanes, planes * block.expansion,
@@ -328,6 +341,9 @@ class ResNet(nn.Module):
         x = self.bn4_2(x)
         x = self.relu(x)
 
+        #y = language_classifier(x, self.block, 2) #language classifier output
+
+        #return x, y
         return x
 
 

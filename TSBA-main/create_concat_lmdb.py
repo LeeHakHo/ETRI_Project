@@ -1,12 +1,15 @@
 #-*- coding: utf-8 -*-
 """ a modified version of CRNN torch repository https://github.com/bgshih/crnn/blob/master/tool/create_dataset.py """
 #--inputPath data_all/ --gtFile data_all/gtmix.txt --outputPath data_lmdb_all
+import io
+
 import fire
 import os
 import lmdb
 import cv2
 
 import numpy as np
+from PIL import Image
 
 
 def checkImageIsValid(imageBin):
@@ -40,14 +43,23 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
     cache = {}
     cnt = 1
 
+    inputPath1 = '/home/ohh/dataset/korean_dataset/croped/'
+    gtFile1 = '/home/ohh/dataset/korean_dataset/croped/gt_train.txt'
+    with open(gtFile1, 'r', encoding='utf-8') as data1:
+        datalist1 = data1.readlines()
+
     with open(gtFile, 'r', encoding='utf-8') as data:
         datalist = data.readlines()
 
     nSamples = len(datalist)
     for i in range(nSamples):
         imagePath, label = datalist[i].strip('\n').split('\t')
-        print(imagePath)
+        #print(imagePath)
         imagePath = os.path.join(inputPath, imagePath)
+
+        imagePath1, label1 = datalist1[i].strip('\n').split('\t')
+        #print(imagePath1)
+        imagePath1 = os.path.join(inputPath1, imagePath1)
 
         # # only use alphanumeric data
         # if re.search('[^a-zA-Z0-9]', label):
@@ -56,8 +68,47 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
         if not os.path.exists(imagePath):
             print('%s does not exist' % imagePath)
             continue
-        with open(imagePath, 'rb') as f:
-            imageBin = f.read()
+
+        if(cnt % 3 == 0):
+            image = Image.open(imagePath)
+            image1 = Image.open(imagePath1)
+            # 사이즈 조정
+            leftimg = image.resize((112, 224))
+            rightimg = image1.resize((112, 224))
+            if(cnt % 2 == 0):
+                # 이미지 좌우 합치기
+                dst = Image.new('RGB', (leftimg.width + leftimg.width, rightimg.height))
+                dst.paste(leftimg, (0, 0))
+                dst.paste(rightimg, (leftimg.width, (leftimg.height - rightimg.height) // 2))
+                # image.save expects a file-like as a argument
+                label = label + label1
+            else:
+                tmp = leftimg
+                leftimg = rightimg
+                rightimg = tmp
+                # 이미지 좌우 합치기
+                dst = Image.new('RGB', (leftimg.width + leftimg.width, rightimg.height))
+                dst.paste(leftimg, (0, 0))
+                dst.paste(rightimg, (leftimg.width, (leftimg.height - rightimg.height) // 2))
+                # image.save expects a file-like as a argument
+                label = label1 + label
+            try:
+                dst.save('/home/ohh/dataset/cat_samples/sample_' + label + '.jpg')
+                with open('/home/ohh/dataset/cat_samples/sample_' + label +'.jpg', 'rb') as f:
+                    imageBin = f.read()
+                print('/home/ohh/dataset/cat_samples/sample_' + label +'.jpg' + "_" + label)
+            except:
+                print("error: " + '/home/ohh/dataset/cat_samples/sample_' + label +'.jpg')
+        elif(cnt % 3 == 1):
+            with open(imagePath, 'rb') as f:
+                imageBin = f.read()
+            print(imagePath+ "_" + label)
+        else:
+            with open(imagePath1, 'rb') as f:
+                imageBin = f.read()
+            label = label1
+            print(imagePath1 + "_" + label1)
+
         if checkValid:
             try:
                 if not checkImageIsValid(imageBin):
@@ -72,6 +123,7 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
         imageKey = 'image-%09d'.encode() % cnt
         labelKey = 'label-%09d'.encode() % cnt
         cache[imageKey] = imageBin
+        #print(label)
         cache[labelKey] = label.encode()
 
         if cnt % 1000 == 0:

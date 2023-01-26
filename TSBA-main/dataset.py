@@ -183,7 +183,6 @@ class LmdbDataset(Dataset):
     def __getitem__(self, index):
         assert index <= len(self), 'index range error'
         index = self.filtered_index_list[index]
-
         with self.env.begin(write=False) as txn:
             label_key = 'label-%09d'.encode() % index
             label = txn.get(label_key).decode('utf-8')

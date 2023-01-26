@@ -14,16 +14,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
+
 import cv2
+import numpy as np
 import torch.nn as nn
 import torch
+import torchvision.utils
+
 from modules.transformation import TPS_SpatialTransformerNetwork
 from modules.feature_extraction import VGG_FeatureExtractor, RCNN_FeatureExtractor, ResNet_FeatureExtractor,SENet_FeatureExtractor,SENet_FeatureExtractor_large
 from modules.sequence_modeling import BidirectionalLSTM
 from modules.prediction import Attention
+from PIL import Image
 
-
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  # Arrange GPU devices starting from 0
+#os.environ["CUDA_VISIBLE_DEVICES"]= "7"  # Set the GPU 2 to use
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+def tensor_to_image(tensor):
+    tensor = tensor*255
+    tensor = np.array(tensor, dtype=np.uint8)
+    if np.ndim(tensor)>3:
+        assert tensor.shape[0] == 1
+        tensor = tensor[0]
+    return Image.fromarray(tensor)
+
 class Model(nn.Module):
 
     def __init__(self, opt):
@@ -75,12 +91,17 @@ class Model(nn.Module):
 
     def forward(self, input,text, is_train=True):
         """ Transformation stage """
-        #cv2.imwrite("/home/ohh/PycharmProject/TSBA-main/result/tps_image/input_result" + text + '.jpg', input)
+        #for i in range(1):
+        #    t_input = input[i]
+        #    torchvision.utils.save_image(t_input, "./result/tps_image_test/img_i_" + str(i) + ".jpg")
         if not self.stages['Trans'] == "None":
             input = self.Transformation(input)
-            #cv2.imwrite("/home/ohh/PycharmProject/TSBA-main/result/tps_image/trans_result" + text + '.jpg', input)
+        #    for i in range(1):
+        #        t_input = input[i]
+        #        torchvision.utils.save_image(t_input, "./result/tps_image_test/img_t_"+ str(i) + ".jpg")
         """ Feature extraction stage """
         visual_feature = self.FeatureExtraction(input)
+        #visual_feature, classifier_output = self.FeatureExtraction(input)
 
         visual_feature = self.AdaptiveAvgPool(visual_feature.permute(0, 3, 1, 2))  # [b, c, h, w] -> [b, w, c, h]
         visual_feature = visual_feature.squeeze(3)

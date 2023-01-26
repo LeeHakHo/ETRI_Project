@@ -7,6 +7,7 @@ MIT License
 import numpy as np
 import cv2
 import math
+from bounding_box import bounding_box as bb
 
 """ auxilary functions """
 # unwarp corodinates
@@ -81,11 +82,10 @@ def getDetBoxes_core(textmap, linkmap, text_threshold, link_threshold, low_text)
 def getPoly_core(boxes, labels, mapper, linkmap):
     # configs
     num_cp = 5
-    max_len_ratio = 0.7
+    max_len_ratio = 0.9 #0.7-> 0.9로 바꿈
     expand_ratio = 1.45
     max_r = 2.0
     step_r = 0.2
-
     polys = []  
     for k, box in enumerate(boxes):
         # size filter for small instance
@@ -93,7 +93,7 @@ def getPoly_core(boxes, labels, mapper, linkmap):
         if w < 10 or h < 10:
             polys.append(None); continue
 
-        # warp image
+        # warp imagecontour
         tar = np.float32([[0,0],[w,0],[w,h],[0,h]])
         M = cv2.getPerspectiveTransform(box, tar)
         word_label = cv2.warpPerspective(labels, M, (w, h), flags=cv2.INTER_NEAREST)
@@ -224,7 +224,7 @@ def getPoly_core(boxes, labels, mapper, linkmap):
 
     return polys
 
-def getDetBoxes(textmap, linkmap, text_threshold, link_threshold, low_text, poly=False):
+def getDetBoxes(textmap, linkmap, text_threshold, link_threshold, low_text, poly=True):
     boxes, labels, mapper = getDetBoxes_core(textmap, linkmap, text_threshold, link_threshold, low_text)
 
     if poly:
