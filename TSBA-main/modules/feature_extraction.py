@@ -237,14 +237,16 @@ class SEBasicBlock(nn.Module):
         return out
 
 
-def language_classifier(x, block, num_classes):
-    avgpool = nn.AdaptiveAvgPool2d((1, 1))
-    fc = nn.Linear(512 * block.expansion, num_classes)
-    x = avgpool(x)
-    x = torch.flatten((x,1))
-    x = fc(x)
+class language_classifier(nn.Module):
+    def __init__(self, block, num_classes):
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
 
-    return x
+    def forward(self, x):
+        x = self.avgpool(x)
+        x = torch.flatten((x, 1))
+        x = self.fc(x)
+        return x
 
 
 class ResNet(nn.Module):
@@ -288,6 +290,7 @@ class ResNet(nn.Module):
         self.conv4_2 = nn.Conv2d(self.output_channel_block[3], self.output_channel_block[
                                  3], kernel_size=2, stride=1, padding=0, bias=False)
         self.bn4_2 = nn.BatchNorm2d(self.output_channel_block[3])
+
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -341,7 +344,8 @@ class ResNet(nn.Module):
         x = self.bn4_2(x)
         x = self.relu(x)
 
-        #y = language_classifier(x, self.block, 2) #language classifier output
+        #language classifier output
+        #y = language_classifier(x)
 
         #return x, y
         return x

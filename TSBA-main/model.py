@@ -25,6 +25,7 @@ import torchvision.utils
 from modules.transformation import TPS_SpatialTransformerNetwork
 from modules.feature_extraction import VGG_FeatureExtractor, RCNN_FeatureExtractor, ResNet_FeatureExtractor,SENet_FeatureExtractor,SENet_FeatureExtractor_large
 from modules.sequence_modeling import BidirectionalLSTM
+from modules.language_classifier import language_classifier
 from modules.prediction import Attention
 from PIL import Image
 
@@ -40,13 +41,14 @@ def tensor_to_image(tensor):
         tensor = tensor[0]
     return Image.fromarray(tensor)
 
+
 class Model(nn.Module):
 
     def __init__(self, opt):
         super(Model, self).__init__()
         self.opt = opt
         self.stages = {'Trans': opt.Transformation, 'Feat': opt.FeatureExtraction,
-                       'Seq': opt.SequenceModeling, 'Pred': opt.Prediction}
+                       'Seq': opt.SequenceModeling, 'Pred': opt.Prediction, 'language_classifier': opt.lg}
 
         """ Transformation """
         if opt.Transformation == 'TPS':
@@ -89,6 +91,9 @@ class Model(nn.Module):
         else:
             raise Exception('Prediction is neither CTC or Attn')
 
+        if opt.lg == True:
+            self.lg_classifer = language_classifier(self.FeatureExtraction_output, opt.hidden_size, opt.num_class)
+
     def forward(self, input,text, is_train=True):
         """ Transformation stage """
         #for i in range(1):
@@ -101,7 +106,11 @@ class Model(nn.Module):
         #        torchvision.utils.save_image(t_input, "./result/tps_image_test/img_t_"+ str(i) + ".jpg")
         """ Feature extraction stage """
         visual_feature = self.FeatureExtraction(input)
-        #visual_feature, classifier_output = self.FeatureExtraction(input)
+        #visual_feature, lg = self.FeatureExtraction(input)
+
+        """ language classifier stage """
+        #if not self.stages['language_classifier'] == "None":
+        #    lg_output = self.lg_classifer(visual_feature)
 
         visual_feature = self.AdaptiveAvgPool(visual_feature.permute(0, 3, 1, 2))  # [b, c, h, w] -> [b, w, c, h]
         visual_feature = visual_feature.squeeze(3)
@@ -118,4 +127,5 @@ class Model(nn.Module):
         else:
             prediction = self.Prediction(contextual_feature.contiguous(), text, is_train, batch_max_length=self.opt.batch_max_length)
 
+        #return prediction, lg_output
         return prediction

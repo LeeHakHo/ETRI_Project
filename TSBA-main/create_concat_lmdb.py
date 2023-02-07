@@ -10,6 +10,7 @@ import cv2
 
 import numpy as np
 from PIL import Image
+Image.LOAD_TRUNCATED_IMAGES = True
 
 
 def checkImageIsValid(imageBin):
@@ -69,7 +70,7 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
             print('%s does not exist' % imagePath)
             continue
 
-        if(cnt % 3 == 0):
+        if(True):
             image = Image.open(imagePath)
             image1 = Image.open(imagePath1)
             # 사이즈 조정
@@ -93,19 +94,19 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
                 # image.save expects a file-like as a argument
                 label = label1 + label
             try:
-                dst.save('/home/ohh/dataset/cat_samples/sample_' + label + '.jpg')
-                with open('/home/ohh/dataset/cat_samples/sample_' + label +'.jpg', 'rb') as f:
+                dst.save('/home/ohh/dataset/cat_total/sample_' + label + '.jpg')
+                with open('/home/ohh/dataset/cat_total/sample_' + label +'.jpg', 'rb') as f:
                     imageBin = f.read()
-                print('/home/ohh/dataset/cat_samples/sample_' + label +'.jpg' + "_" + label)
+                print('/home/ohh/dataset/cat_total/sample_' + label +'.jpg' + "_" + label)
             except:
-                print("error: " + '/home/ohh/dataset/cat_samples/sample_' + label +'.jpg')
-        elif(cnt % 3 == 1):
-            with open(imagePath, 'rb') as f:
-                imageBin = f.read()
-            print(imagePath+ "_" + label)
-        else:
-            with open(imagePath1, 'rb') as f:
-                imageBin = f.read()
+                print("error: " + '/home/ohh/dataset/cat_total/sample_' + label +'.jpg')
+        # elif(cnt % 3 == 1):
+        #     with open(imagePath, 'rb') as f:
+        #         imageBin = f.read()
+        #     print(imagePath+ "_" + label)
+        # else:
+        #     with open(imagePath1, 'rb') as f:
+        #         imageBin = f.read()
             label = label1
             print(imagePath1 + "_" + label1)
 

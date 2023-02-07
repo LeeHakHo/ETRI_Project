@@ -191,10 +191,10 @@ def TSBA_result(bbox, img, image_name):
     img_h, img_w, img_c = img.shape
     for p1, p2, p3, p4 in bbox:
         p = []
-        p1[1] = p1[1] * 0.98
-        p3[1] = p3[1] * 1.02
-        p1[0] = p1[0] * 0.98
-        p3[0] = p3[0] * 1.02
+        p1[1] = p1[1] * 0.85
+        p3[1] = p3[1] * 1.25
+        p1[0] = p1[0] * 0.85
+        p3[0] = p3[0] * 1.25
         if int(p1[1]) < 0:
             p1[1] = 0
         if int(p3[1]) > img_h:
@@ -225,7 +225,7 @@ def TSBA_result(bbox, img, image_name):
             print("error")
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    cv2.imwrite('./result/concat_image_sample/'+image_name + "_result" +'.jpg', img)
+    cv2.imwrite('./result/samples_result/'+image_name + "_result" +'.jpg', img)
 
 #python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path <- command
 
@@ -240,16 +240,16 @@ parser.add_argument('--canvas_size', default=1280, type=int, help='image size fo
 parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--show_time', default=False, action='store_true', help='show processing time')
-parser.add_argument('--test_folder', default='/home/ohh/PycharmProject/TSBA-main/result/image/', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='/home/ohh/PycharmProject/TSBA-main/result/sample', type=str, help='folder path to input images')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 
 #args for TSBA
-parser.add_argument('--model1', default='/home/ohh/PycharmProject/TSBA-main/saved_models/EK_concat_BiLSTM/iter_46000.pth', help='Path to the first model pth file to ensemble')
+parser.add_argument('--model1', default='/home/ohh/PycharmProject/TSBA-main/saved_models/Korean/best_accuracy.pth', help='Path to the first model pth file to ensemble')
 parser.add_argument('--model2', default='SENet.pth', help='Path to the second model pth file to ensemble')
 parser.add_argument('--model3', default='SENetL.pth', help='Path to the third model pth file to ensemble')
 parser.add_argument('--current_time', required=False, help='the current time')
-parser.add_argument('--exp_name', default='result_concat_14000', help='Where to store logs and results')
+parser.add_argument('--exp_name', default='result_concat_140d100', help='Where to store logs and results')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batch_size', type=int, default=8, help='input batch size')
 #parser.add_argument('--image_folder', default='', help='path to image_folder which contains text images.') #but Not used in CRAFT-TSBA'
@@ -272,6 +272,7 @@ parser.add_argument('--FeatureExtraction', type=str, required=False,
 parser.add_argument('--SequenceModeling', default='BiLSTM', type=str,
                     help='SequenceModeling stage. None|BiLSTM')
 parser.add_argument('--Prediction', default='Attn', type=str, help='Prediction stage. CTC|Attn')
+parser.add_argument('--lg', default=False, help='LEE.')
 parser.add_argument('--num_fiducial', type=int, default=20, help='number of fiducial points of TPS-STN')
 parser.add_argument('--input_channel', type=int, default=1, help='the number of input channel of Feature extractor')
 parser.add_argument('--output_channel', type=int, default=512,

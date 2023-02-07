@@ -162,7 +162,8 @@ def train(opt):
                 cost = criterion(preds, text, preds_size, length)
 
         else:
-            preds = model(image, text[:, :-1])  # align with Attention.forward
+            #preds, lg = model(image, text[:, :-1])  # align with Attention.forward
+            preds= model(image, text[:, :-1])  # align with Attention.forward
             target = text[:, 1:]  # without [GO] Symbol
             cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
 
@@ -267,6 +268,7 @@ if __name__ == '__main__':
     parser.add_argument('--Transformation', type=str, required=True, help='Transformation stage. None|TPS')
     parser.add_argument('--FeatureExtraction', type=str, required=True,
                         help='FeatureExtraction stage. VGG|RCNN|ResNet|SENet|SENetL')
+    parser.add_argument('--lg', type=str, default= True ,required=False, help='language classifier')
     parser.add_argument('--SequenceModeling', type=str, required=True, help='SequenceModeling stage. None|BiLSTM')
     parser.add_argument('--Prediction', type=str, required=True, help='Prediction stage. CTC|Attn')
     parser.add_argument('--num_fiducial', type=int, default=20, help='number of fiducial points of TPS-STN')
