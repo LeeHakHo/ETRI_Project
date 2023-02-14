@@ -101,7 +101,7 @@ class Evolution(nn.Module):
         self.adj_num = adj_num
         self.device = device
         self.is_training = is_training
-        self.clip_dis = 16
+        self.clip_dis = 16 #16 -> 108
 
         self.iter = 3 #3-> 30
         if model == "gcn":
@@ -203,9 +203,35 @@ class Evolution(nn.Module):
                 inds.append([bid, 0])
                 poly = get_sample_point(text_mask, cfg.num_points, cfg.approx_factor)
                 init_polys.append(poly)
+        #print(init_polys)
         if len(inds) > 0:
             inds = torch.from_numpy(np.array(inds)).permute(1, 0).to(input["img"].device)
             init_polys = torch.from_numpy(np.array(init_polys)).to(input["img"].device).float()
+        else:
+            init_polys = torch.from_numpy(np.array(init_polys)).to(input["img"].device).float()
+            inds = torch.from_numpy(np.array(inds)).to(input["img"].device).float()
+        return init_polys, inds
+
+    #Leehakho
+    @staticmethod
+    def CRAFT_eval(input=None, seg_preds=None):
+        inds = []
+        init_polys = []
+        for idx in range(input['index'].item()+1):
+            poly = input['annotation'][0][idx]
+            #print(idx)
+            #print(poly)
+            inds.append([idx,0])
+            poly = poly.numpy()
+            init_polys.append(poly)
+        #print(init_polys)
+        #print(torch.from_numpy(np.array(inds)))
+
+        if len(inds) > 0:
+            inds = torch.from_numpy(np.array(inds)).permute(1, 0).to(input["img"].device)
+            a = np.array(init_polys)
+            #a = init_polys
+            init_polys = torch.from_numpy(a).to(input["img"].device).float()
         else:
             init_polys = torch.from_numpy(np.array(init_polys)).to(input["img"].device).float()
             inds = torch.from_numpy(np.array(inds)).to(input["img"].device).float()
@@ -217,8 +243,10 @@ class Evolution(nn.Module):
         h, w = cnn_feature.size(2), cnn_feature.size(3)
         node_feats = get_node_feature(cnn_feature, i_it_poly, ind, h, w)
         i_poly = i_it_poly + torch.clamp(snake(node_feats, self.adj).permute(0, 2, 1), -self.clip_dis, self.clip_dis)
+        #i_poly = i_it_poly + 5 * (torch.clamp(snake(node_feats, self.adj).permute(0, 2, 1), -self.clip_dis, self.clip_dis)) #Leehakho
         if self.is_training:
             i_poly = torch.clamp(i_poly, 1, w-2)
+            #print( i_it_poly - i_poly)
         else:
             i_poly[:, :, 0] = torch.clamp(i_poly[:, :, 0], 1, w - 2)
             i_poly[:, :, 1] = torch.clamp(i_poly[:, :, 1], 1, h - 2)
@@ -274,7 +302,13 @@ class Evolution(nn.Module):
             init_polys, inds = self.get_boundary_proposal(input=input, seg_preds=seg_preds, switch=switch)
             # TODO sample fix number
         else:
-            init_polys, inds = self.get_boundary_proposal_eval(input=input, seg_preds=seg_preds)
+            #init_polys, inds = self.get_boundary_proposal_eval(input=input, seg_preds=seg_preds)
+            #print(inds)
+            init_polys, inds = self.CRAFT_eval(input=input, seg_preds=seg_preds) #Leehakho
+            #inds = input['index']
+            #init_polys = input['annotation'][inds]
+            #init_polys, inds = input['annotation'], input['index'] #Leehakho
+
             if init_polys.shape[0] == 0:
                 return [init_polys for i in range(self.iter)], init_polys, inds
         #print(inds) #(tensor([0, 1, 2, 2, 2, 2, 2, 3, 4, 5, 6, 6, 6, 6, 6, 7, 8, 9]), tensor([0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 0]))

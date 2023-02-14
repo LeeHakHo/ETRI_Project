@@ -77,6 +77,7 @@ class TD500Text(TextDataset):
         if self.is_training:
             return self.get_training_data(image, polygons, image_id=image_id, image_path=image_path)
         else:
+            polygons = None #Leehakho
             return self.get_test_data(image, polygons, image_id=image_id, image_path=image_path)
 
     def __len__(self):
@@ -93,9 +94,7 @@ if __name__ == '__main__':
     means = (0.485, 0.456, 0.406)
     stds = (0.229, 0.224, 0.225)
 
-    transform = Augmentation(
-        size=640, mean=means, std=stds
-    )
+    transform = Augmentation(size=224, mean=means, std=stds) #Leehahko 640 -> 224
 
     trainset = TD500Text(
         data_root='/home/ohh/dataset/GCN_105',

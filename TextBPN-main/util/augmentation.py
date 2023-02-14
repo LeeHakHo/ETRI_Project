@@ -726,13 +726,13 @@ class Augmentation(object):
         self.std = std
         self.augmentation = Compose([
             RandomResizeScale(size=self.size, ratio=(3. / 4, 5. / 2)),
-            #RandomCropFlip(),
+            RandomCropFlip(),
             RandomResizedCrop(),
-            #RotatePadding(up=60, colors=True),
+            RotatePadding(up=60, colors=True),
             ResizeLimitSquare(size=self.size),
             # # RandomBrightness(),
             # # RandomContrast(),
-            #RandomMirror(),
+            RandomMirror(),
             Normalize(mean=self.mean, std=self.std),
         ])
 

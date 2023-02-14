@@ -12,7 +12,7 @@ from torch.optim import lr_scheduler
 from dataset import SynthText, TotalText, Ctw1500Text, Icdar15Text, Mlt2017Text, TD500Text, GCN
 from network.loss import TextLoss
 from network.textnet import TextNet
-from util.augmentation import Augmentation
+from util.augmentation import Augmentation, BaseTransform
 from cfglib.config import config as cfg, update_config, print_config
 from util.misc import AverageMeter
 from util.misc import mkdirs, to_device
@@ -73,7 +73,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
     data_time = AverageMeter()
     end = time.time()
     model.train()
-    #scheduler.step()
+    scheduler.step()
 
     print('Epoch: {} : LR = {}'.format(epoch, scheduler.get_lr()))
 
@@ -185,8 +185,8 @@ def main():
             data_root='/home/ohh/dataset/GCN_105',
             #data_root='/home/ohh/dataset/',
             is_training=True,
-            transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
-            #transform=None #Leehakho
+            #transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
+            transform=BaseTransform(size=[cfg.input_size,cfg.input_size], mean=cfg.means, std=cfg.stds) #Leehakho
         )
         valset = None
 

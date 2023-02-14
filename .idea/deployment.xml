@@ -5,7 +5,7 @@
       <paths name="ohh@129.254.169.202:22 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/ohh/PycharmProject" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/PycharmProject" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

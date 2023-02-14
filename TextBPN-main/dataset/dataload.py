@@ -26,7 +26,7 @@ def pil_load_img(path):
 def CRAFT_net(network, image, text_threshold, link_threshold, low_text, cuda, poly):
 
     t0 = time.time()
-
+    #cv2.imwrite('/home/ohh/PycharmProject/TextBPN-main/output/temp/' + 'a.jpg', image)
     # resize
     img_resized, target_ratio, size_heatmap = resize_aspect_ratio(image, 1280, interpolation=cv2.INTER_LINEAR,
                                                                       mag_ratio=1.5)
@@ -34,7 +34,7 @@ def CRAFT_net(network, image, text_threshold, link_threshold, low_text, cuda, po
 
     # preprocessing
     x = normalizeMeanVariance(img_resized)
-    #x = normalizeMeanVariance(image)
+    #print(x.shape)
     x = torch.from_numpy(x).permute(2, 0, 1)  # [h, w, c] to [c, h, w]
     x = Variable(x.unsqueeze(0))  # [c, h, w] to [b, c, h, w]
     if cuda:
@@ -62,9 +62,9 @@ def CRAFT_net(network, image, text_threshold, link_threshold, low_text, cuda, po
     t1 = time.time() - t1
 
     # render results (optional)
-    render_img = score_text.copy()
-    render_img = np.hstack((render_img, score_link))
-    ret_score_text = cvt2HeatmapImg(render_img)
+    #render_img = score_text.copy()
+    #render_img = np.hstack((render_img, score_link))
+    #ret_score_text = cvt2HeatmapImg(render_img)
 
     # print("\ninfer/postproc time : {:.3f}/{:.3f}".format(t0, t1))
     # inds.append(0)
@@ -206,7 +206,7 @@ class TextDataset(object):
 
     #Leehakho
     def get_proposal_CRAFT(self, img):
-        bboxes, polys = CRAFT_net(network=self.net, image=img, text_threshold=0.1, link_threshold=0.1, low_text=0.1, cuda=True,
+        bboxes, polys = CRAFT_net(network=self.net, image=img, text_threshold=0.4, link_threshold=0.2, low_text=0.2, cuda=True,
                                        poly=True)  # 0.7 0.4 0.4 -> 0.3 0.2 0.2
         polys = merge_bbox(bboxes, img)
         ctrl_points = polys
@@ -273,7 +273,7 @@ class TextDataset(object):
 
         return diff
 
-    def make_text_region(self, img, polygons):
+    def make_text_region(self, img, polygons, origin_img):
         h, w = img.shape[0], img.shape[1]
         mask_zeros = np.zeros(img.shape[:2], np.uint8)
 
@@ -299,7 +299,6 @@ class TextDataset(object):
 
             #gt_points[idx, :, :] = polygon.get_sample_point(size=(h, w))
             gt_points[idx, :, :] = polygon.points #Leehakho
-
             cv2.fillPoly(tr_mask, [polygon.points.astype(np.int)], color=(idx + 1,))
 
             inst_mask = mask_zeros.copy()
@@ -316,7 +315,8 @@ class TextDataset(object):
             #     self.generate_proposal_point(dmp / (np.max(dmp)+1e-9) >= self.th_b, cfg.num_points,
             #                                  cfg.approx_factor, jitter=self.jitter, distance=self.th_b * np.max(dmp))  #Leehakho
 
-            points = self.get_proposal_CRAFT(img)
+            points = self.get_proposal_CRAFT(origin_img)
+            #print(points)
             proposal_points[idx, :, :] = points.cpu()
             #print(proposal_points[idx, :, :])
             distance_field[:, :] = np.maximum(distance_field[:, :], dmp / (np.max(dmp)+1e-9))
@@ -340,13 +340,14 @@ class TextDataset(object):
 
     def get_training_data(self, image, polygons, image_id=None, image_path=None):
         np.random.seed()
-
+        origin_img = image
         if self.transform:
+            origin_img = ResizeSqr(origin_img,[224,224])
             image, polygons = self.transform(image, copy.copy(polygons))
-
+        #cv2.imwrite('/home/ohh/PycharmProject/TextBPN-main/output/temp/' + 'a.jpg', image)
         train_mask, tr_mask, \
         distance_field, direction_field, \
-        weight_matrix, gt_points, proposal_points, ignore_tags = self.make_text_region(image, polygons)
+        weight_matrix, gt_points, proposal_points, ignore_tags = self.make_text_region(image, polygons, origin_img)
 
         # # to pytorch channel sequence
         image = image.transpose(2, 0, 1)
@@ -366,29 +367,44 @@ class TextDataset(object):
 
     def get_test_data(self, image, polygons, image_id=None, image_path=None):
         H, W, _ = image.shape
-
+        origin_img = image
         #polygons = list(TextInstance(points = np.array([[[196, 582],[1209, 591],1210, 754],[185, 749]]), orient ='c', text='undefined'))
         if self.transform:
-            image, polygons = self.transform(image, polygons)
+            origin_img = ResizeSqr(origin_img,[224,224])
+            image, polygons = self.transform(image, copy.copy(polygons))
 
+        polygons = self.get_proposal_CRAFT(origin_img).cpu() #Leehakho
         points = np.zeros((cfg.max_annotation, cfg.max_points, 2))
         length = np.zeros(cfg.max_annotation, dtype=int)
         label_tag = np.zeros(cfg.max_annotation, dtype=int)
+
+        # if polygons is not None:
+        #     for i, polygon in enumerate(polygons):
+        #         pts = polygon.points
+        #         points[i, :pts.shape[0]] = polygon.points
+        #         length[i] = pts.shape[0]
+        #         if polygon.text != '#':
+        #             label_tag[i] = 1
+        #         else:
+        #             label_tag[i] = -1
+
+        #Leehakho
         if polygons is not None:
+            idx = 0
             for i, polygon in enumerate(polygons):
-                pts = polygon.points
-                points[i, :pts.shape[0]] = polygon.points
+                pts = polygon
+                points[i, :pts.shape[0]] = polygon
                 length[i] = pts.shape[0]
-                if polygon.text != '#':
-                    label_tag[i] = 1
-                else:
-                    label_tag[i] = -1
+                label_tag[i] = 1
+                idx = i
+
 
         meta = {
             'image_id': image_id,
             'image_path': image_path,
             'annotation': points,
             'n_annotation': length,
+            'index': idx,
             'label_tag': label_tag,
             'Height': H,
             'Width': W
@@ -401,3 +417,24 @@ class TextDataset(object):
 
     def __len__(self):
         raise NotImplementedError()
+
+def ResizeSqr(image, size):
+    h, w, _ = image.shape
+    img_size_min = min(h, w)
+    img_size_max = max(h, w)
+
+    if img_size_min < size[0]:
+        im_scale = float(size[0]) / float(img_size_min)  # expand min to size[0]
+        if np.round(im_scale * img_size_max) > size[1]:  # expand max can't > size[1]
+            im_scale = float(size[1]) / float(img_size_max)
+    elif img_size_max > size[1]:
+        im_scale = float(size[1]) / float(img_size_max)
+    else:
+        im_scale = 1.0
+
+    new_h = int(int(h * im_scale / 32) * 32)
+    new_w = int(int(w * im_scale / 32) * 32)
+    image = cv2.resize(image, (new_w, new_h))
+    scales = np.array([new_w / w, new_h / h])
+
+    return image

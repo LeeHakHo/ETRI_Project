@@ -53,6 +53,8 @@ def inference(model, test_loader, output_dir):
         input_dict = dict()
 
         input_dict['img'] = to_device(image) #meta에 polygon 정보도 없고 그냥 image만 들어감
+        input_dict['annotation'] = meta['annotation']
+        input_dict['index'] = meta['index']
         # get detection result
         start = time.time()
         torch.cuda.synchronize()

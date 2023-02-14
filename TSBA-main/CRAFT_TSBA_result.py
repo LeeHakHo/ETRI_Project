@@ -26,8 +26,8 @@ from collections import OrderedDict
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 import os
 
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 #input image list, return prediction_result_list with TSBA.pth
 def TSBA(opt, image_list):
@@ -227,6 +227,37 @@ def TSBA_result(bbox, img, image_name):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     cv2.imwrite('./result/samples_result/'+image_name + "_result" +'.jpg', img)
 
+def GCN(bbox, img, image_name):
+    #originImg = img
+    img_h, img_w, img_c = img.shape
+    mp = []
+    mp.append(img_w)
+    mp.append(0)
+    mp.append(0)
+    mp.append(img_h)
+    i = 0
+    #bbox merge
+    for p0, p1, p2, p3 in bbox:
+        i+=1
+        if int(p0[0]) < mp[0]:
+            mp[0] = int(p0[0])
+
+        if int(p2[1]) > mp[1]:
+            mp[1] = int(p2[1])
+
+        if int(p2[0]) > mp[2]:
+            mp[2] = int(p2[0])
+
+        if int(p0[1]) < mp[3]:
+            mp[3] = int(p0[1])
+
+    #try:
+    #    bb.add(img, int(mp[0]), int(mp[1]), int(mp[2]), int(mp[3])) # if you want use korean label, save ttf file in bounding_box.py / (img, left, top, right, bottom, label, color)
+    #except:
+    #    print("error")
+    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    #cv2.imwrite('./result/GCN_result/'+image_name + "_result" +'.jpg', img)
+
 #python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path <- command
 
 #args for CRAFT
@@ -399,6 +430,7 @@ if __name__ == '__main__':
         #cv2.imwrite(mask_file, score_text)
         #file_utils.saveResult(image_path, image[:,:,::-1], polys, dirname=result_folder)
 
-        TSBA_result(bboxes, image, image_name)
+        #TSBA_result(bboxes, image, image_name)
+        GCN(bboxes, image, image_name)
 
     print("elapsed time : {}s".format(time.time() - t))

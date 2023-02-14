@@ -25,7 +25,7 @@ config.cuda = True
 
 config.output_dir = 'output'
 
-config.input_size = 640
+config.input_size = 224 #640 -> 224
 
 # max polygon per image
 # synText, total-text:600; CTW1500: 1200; icdar: ; MLT: ; TD500: .
