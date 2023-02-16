@@ -38,18 +38,20 @@ def visualize_network_output(output_dict, input_dict, mode='train'):
         norm_pred = np.sqrt(fy_preds[i, 2, :, :] ** 2 + fy_preds[i, 3, :, :] ** 2)
         angle_pred = 180 / math.pi * np.arctan2(fy_preds[i, 2, :, :], fy_preds[i, 3, :, :] + 0.00001)
 
-        ax1 = fig.add_subplot(341)
+        ax1 = fig.add_subplot(241) # 341->241
         ax1.set_title('mask_pred')
         # ax1.set_autoscale_on(True)
         im1 = ax1.imshow(mask_pred, cmap=cm.jet)
         # plt.colorbar(im1, shrink=0.5)
 
-        ax2 = fig.add_subplot(342)
+        ax2 = fig.add_subplot(242) #342->242
         ax2.set_title('distance_pred')
         # ax2.set_autoscale_on(True)
         im2 = ax2.imshow(distance_pred, cmap=cm.jet)
         # plt.colorbar(im2, shrink=0.5)
 
+        #LeeHakho
+        """
         ax3 = fig.add_subplot(343)
         ax3.set_title('norm_pred')
         # ax3.set_autoscale_on(True)
@@ -92,6 +94,7 @@ def visualize_network_output(output_dict, input_dict, mode='train'):
         # ax44.set_autoscale_on(True)
         im44 = ax44.imshow(angle_gt, cmap=cm.jet)
         # plt.colorbar(im44, shrink=0.5)
+        """
 
         img_show = image[i].permute(1, 2, 0).cpu().numpy()
         img_show = ((img_show * cfg.stds + cfg.means) * 255).astype(np.uint8)
@@ -117,12 +120,20 @@ def visualize_network_output(output_dict, input_dict, mode='train'):
             cv2.drawContours(image_show, contours.astype(np.int32), -1, (0, 0, 255), 2) #이게 파란색 직사각형
             shows.append(image_show)
 
+        #Leehakho
         for idx, im_show in enumerate(shows):
-            axb = fig.add_subplot(3, 4, 9+idx)
+            axb = fig.add_subplot(2, 4, 5+idx -2) # 3,4,9+idx-2 -> 2,4,5+idx-2
             # axb.set_title('boundary_{}'.format(idx))
             # axb.set_autoscale_on(True)
             im11 = axb.imshow(im_show, cmap=cm.jet)
             # plt.colorbar(im11, shrink=0.5)
+
+        # for idx, im_show in enumerate(shows):
+        #     axb = fig.add_subplot(3, 4, 9+idx)
+        #     # axb.set_title('boundary_{}'.format(idx))
+        #     # axb.set_autoscale_on(True)
+        #     im11 = axb.imshow(im_show, cmap=cm.jet)
+        #     # plt.colorbar(im11, shrink=0.5)
 
         path = os.path.join(vis_dir, '{}.png'.format(i))
         plt.savefig(path)

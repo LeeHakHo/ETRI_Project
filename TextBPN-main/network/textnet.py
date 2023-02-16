@@ -101,9 +101,9 @@ class Evolution(nn.Module):
         self.adj_num = adj_num
         self.device = device
         self.is_training = is_training
-        self.clip_dis = 16 #16 -> 108
+        self.clip_dis = 48 #16 -> 108
 
-        self.iter = 3 #3-> 30
+        self.iter = 5 #3-> 30
         if model == "gcn":
             self.adj = get_adj_mat(self.adj_num, self.node_num)
             self.adj = normalize_adj(self.adj, type="DAD").float().to(self.device)
@@ -119,7 +119,7 @@ class Evolution(nn.Module):
             self.adj = get_adj_mat(self.adj_num, self.node_num)
             self.adj = normalize_adj(self.adj, type="DAD").float().to(self.device)
             for i in range(self.iter):
-                evolve_gcn = GCN_RNN(36, 128)
+                evolve_gcn = GCN_RNN(36, 128) #36, 128 ->
                 self.__setattr__('evolve_gcn' + str(i), evolve_gcn)
         elif model == "transformer":
             self.adj = None
@@ -242,8 +242,9 @@ class Evolution(nn.Module):
             return torch.zeros_like(i_it_poly)
         h, w = cnn_feature.size(2), cnn_feature.size(3)
         node_feats = get_node_feature(cnn_feature, i_it_poly, ind, h, w)
-        i_poly = i_it_poly + torch.clamp(snake(node_feats, self.adj).permute(0, 2, 1), -self.clip_dis, self.clip_dis)
-        #i_poly = i_it_poly + 5 * (torch.clamp(snake(node_feats, self.adj).permute(0, 2, 1), -self.clip_dis, self.clip_dis)) #Leehakho
+        temp = snake(node_feats, self.adj).permute(0, 2, 1)
+        i_poly = i_it_poly + torch.clamp(temp, -self.clip_dis, self.clip_dis)
+
         if self.is_training:
             i_poly = torch.clamp(i_poly, 1, w-2)
             #print( i_it_poly - i_poly)
@@ -302,9 +303,10 @@ class Evolution(nn.Module):
             init_polys, inds = self.get_boundary_proposal(input=input, seg_preds=seg_preds, switch=switch)
             # TODO sample fix number
         else:
-            #init_polys, inds = self.get_boundary_proposal_eval(input=input, seg_preds=seg_preds)
-            #print(inds)
-            init_polys, inds = self.CRAFT_eval(input=input, seg_preds=seg_preds) #Leehakho
+            if cfg.CRAFT is True:
+                init_polys, inds = self.CRAFT_eval(input=input, seg_preds=seg_preds) #Leehakho
+            else:
+                init_polys, inds = self.get_boundary_proposal_eval(input=input, seg_preds=seg_preds)
             #inds = input['index']
             #init_polys = input['annotation'][inds]
             #init_polys, inds = input['annotation'], input['index'] #Leehakho

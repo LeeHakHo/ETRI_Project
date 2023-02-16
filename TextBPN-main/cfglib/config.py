@@ -4,7 +4,16 @@ import os
 
 config = EasyDict()
 
-config.gpu = "0,1,2,3,4,5,6,7"
+# LeeHakho
+config.CRAFT = True
+
+config.gpu = "0,1,2,3,4,5,6"
+
+# max point per polygon for annotation
+config.max_points = 20 #4 -> 20
+
+# control points number
+config.num_points = 20
 
 # dataloader jobs number
 config.num_workers = 24
@@ -25,20 +34,14 @@ config.cuda = True
 
 config.output_dir = 'output'
 
-config.input_size = 224 #640 -> 224
+config.input_size = 640 #640 -> 224
 
 # max polygon per image
 # synText, total-text:600; CTW1500: 1200; icdar: ; MLT: ; TD500: .
 config.max_annotation = 8
 
-# control points number
-config.num_points = 4
-
 # adj num for graph
 config.adj_num = 4
-
-# max point per polygon for annotation
-config.max_points = 4
 
 # use hard examples (annotated as '#')
 config.use_hard = True

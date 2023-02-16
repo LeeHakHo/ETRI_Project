@@ -18,7 +18,7 @@ class TD500Text(TextDataset):
         self.data_root = data_root
         self.is_training = is_training
 
-        self.image_root = os.path.join(data_root, 'obj_train_data' if is_training else 'Test/image')
+        self.image_root = os.path.join(data_root, 'obj_train_onlyone' if is_training else 'Test/image')
         self.annotation_root = os.path.join(data_root,'obj_train_annotation' if is_training else 'Test/bbox')
         #self.image_root = os.path.join(data_root, 'TD500' if is_training else 'Test')
         #self.annotation_root = os.path.join(data_root, 'TD500' if is_training else 'Test')
@@ -50,13 +50,8 @@ class TD500Text(TextDataset):
 
             label = gt[-1].strip().replace("###", "#")
             pts = np.stack([xx, yy]).T.astype(np.int32)
-            # d1 = norm2(pts[0] - pts[1])
-            # d2 = norm2(pts[1] - pts[2])
-            # d3 = norm2(pts[2] - pts[3])
-            # d4 = norm2(pts[3] - pts[0])
-            # if min([d1, d2, d3, d4]) < 2:
-            #     continue
             polygons.append(TextInstance(pts, 'c', label))
+
 
         return polygons
 
@@ -71,6 +66,9 @@ class TD500Text(TextDataset):
             annotation_id = self.annotation_list[item]
             annotation_path = os.path.join(self.annotation_root, "gt_" + annotation_id)
             polygons = self.parse_txt(annotation_path)
+
+            if(len(polygons) > 1):
+                polygons = None
         except:
             polygons = None
             
@@ -94,7 +92,7 @@ if __name__ == '__main__':
     means = (0.485, 0.456, 0.406)
     stds = (0.229, 0.224, 0.225)
 
-    transform = Augmentation(size=224, mean=means, std=stds) #Leehahko 640 -> 224
+    transform = Augmentation(size=640, mean=means, std=stds) #Leehahko 640 -> 224
 
     trainset = TD500Text(
         data_root='/home/ohh/dataset/GCN_105',
@@ -111,9 +109,9 @@ if __name__ == '__main__':
         img = img.transpose(1, 2, 0)
         img = ((img * stds + means) * 255).astype(np.uint8)
 
-        for i in range(tr_mask.shape[2]):
-            cv2.imshow("tr_mask_{}".format(i),
-                       cav.heatmap(np.array(tr_mask[:, :, i] * 255 / np.max(tr_mask[:, :, i]), dtype=np.uint8)))
+        #for i in range(tr_mask.shape[2]):
+        #    cv2.imshow("tr_mask_{}".format(i),
+        #               cav.heatmap(np.array(tr_mask[:, :, i] * 255 / np.max(tr_mask[:, :, i]), dtype=np.uint8)))
 
-        cv2.imshow('imgs', img)
-        cv2.waitKey(0)
+        #cv2.imshow('imgs', img)
+        #cv2.waitKey(0)

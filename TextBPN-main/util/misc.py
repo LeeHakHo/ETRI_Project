@@ -378,7 +378,6 @@ def get_sample_point(text_mask, num_points, approx_factor):
     e_index = [(i, (i + 1) % pts_num) for i in range(pts_num)]
     ctrl_points = split_edge_seqence(approx, e_index, num_points)
     ctrl_points = np.array(ctrl_points[:num_points, :]).astype(np.int32)
-    #print(ctrl_points.shape)#[20,2]
     return ctrl_points
 
 

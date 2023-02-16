@@ -67,7 +67,6 @@ class GCN_RNN(nn.Module):
 
     def forward(self, x, A):
         x = self.bn0(x)
-
         # # rnn block
         yl = x.permute(2, 0, 1)
         yl, _ = self.rnn(yl)

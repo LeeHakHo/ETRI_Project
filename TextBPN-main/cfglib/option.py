@@ -27,16 +27,20 @@ class BaseOptions(object):
         self.parser = argparse.ArgumentParser()
 
         # basic opts
+        self.parser.add_argument("--CRAFT", default=True, type=str)
+        self.parser.add_argument("--num_points", default="20", type=int)
+        self.parser.add_argument("--max_points", default="20", type=int)
+        self.parser.add_argument("--adj_num", default="4", type=int)
         self.parser.add_argument('--exp_name', default="GCN", type=str,
                                  choices=['Synthtext', 'Totaltext', 'Ctw1500',
                                           'Icdar2015', "MLT2017", 'GCN'], help='Experiment name')
-        self.parser.add_argument("--gpu", default="0,1,2,3,4,5,6,7", help="set gpu id", type=str)
+        self.parser.add_argument("--gpu", default="0,1,2,3,4,5,6", help="set gpu id", type=str)
         self.parser.add_argument('--resume', default=None, type=str, help='Path to target resume checkpoint')
         self.parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
         self.parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
         self.parser.add_argument('--mgpu', action='store_true', help='Use multi-gpu to train model')
         self.parser.add_argument('--save_dir', default='./model/', help='Path to save checkpoint models')
-        self.parser.add_argument('--vis_dir', default='./vis/', help='Path to save visualization images')
+        self.parser.add_argument('--vis_dir', default='./vis/max80_contour', help='Path to save visualization images')
         self.parser.add_argument('--log_dir', default='./logs/', help='Path to tensorboard log')
         self.parser.add_argument('--loss', default='CrossEntropyLoss', type=str, help='Training Loss')
         # self.parser.add_argument('--input_channel', default=1, type=int, help='number of input channels' )
@@ -46,17 +50,17 @@ class BaseOptions(object):
         # self.parser.add_argument('--viz', default=True, type=str2bool, help='Whether to output debug info')
 
         # train opts
-        self.parser.add_argument('--max_epoch', default=500, type=int, help='Max epochs')
+        self.parser.add_argument('--max_epoch', default=10000, type=int, help='Max epochs')
         self.parser.add_argument('--lr', '--learning-rate', default=0.001, type=float, help='initial learning rate')
         self.parser.add_argument('--lr_adjust', default='fix',
                                  choices=['fix', 'poly'], type=str, help='Learning Rate Adjust Strategy')
         self.parser.add_argument('--stepvalues', default=[], nargs='+', type=int, help='# of iter to change lr')
         self.parser.add_argument('--weight_decay', '--wd', default=0., type=float, help='Weight decay for SGD')
-        self.parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD lr')
-        self.parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-        self.parser.add_argument('--batch_size', default=2, type=int, help='Batch size for training')
+        self.parser.add_argument('--gamma', default=0.9, type=float, help='Gamma update for SGD lr')
+        self.parser.add_argument('--momentum', default=0.1, type=float, help='momentum')
+        self.parser.add_argument('--batch_size', default=3, type=int, help='Batch size for training')
         self.parser.add_argument('--optim', default='Adam', type=str, choices=['SGD', 'Adam'], help='Optimizer')
-        self.parser.add_argument('--save_freq', default=50, type=int, help='save weights every # epoch')
+        self.parser.add_argument('--save_freq', default=20, type=int, help='save weights every # epoch')
         self.parser.add_argument('--display_freq', default=18, type=int, help='display training metrics every # iter')
         self.parser.add_argument('--viz_freq', default=100, type=int, help='visualize training process every # iter')
         self.parser.add_argument('--log_freq', default=1000, type=int, help='log to tensorboard every # iterations')
@@ -71,11 +75,11 @@ class BaseOptions(object):
         self.parser.add_argument('--rescale', type=float, default=255.0, help='rescale factor')
         self.parser.add_argument('--means', type=int, default=(0.485, 0.456, 0.406), nargs='+', help='mean')
         self.parser.add_argument('--stds', type=int, default=(0.229, 0.224, 0.225), nargs='+', help='std')
-        self.parser.add_argument('--input_size', default=224, type=int, help='model input size') #640 -> 224
-        self.parser.add_argument('--test_size', default=[224, 224], type=int, nargs='+', help='test size') # 640 -> 224
+        self.parser.add_argument('--input_size', default=640, type=int, help='model input size') #640 -> 224
+        self.parser.add_argument('--test_size', default=[640, 640], type=int, nargs='+', help='test size') # 640 -> 224
 
         # eval args00
-        self.parser.add_argument('--checkepoch', default=50, type=int, help='Load checkpoint number')
+        self.parser.add_argument('--checkepoch', default=400, type=int, help='Load checkpoint number')
         self.parser.add_argument('--start_epoch', default=0, type=int, help='start epoch number')
         self.parser.add_argument('--cls_threshold', default=0.0, type=float, help='threshold of pse') #0.875 -> 0
         # self.parser.add_argument('--dis_th', default=0.5, type=float, help='threshold of pse')

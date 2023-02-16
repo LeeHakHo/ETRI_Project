@@ -1,4 +1,7 @@
 import copy
+import random
+import statistics
+
 import cv2
 import torch
 import numpy as np
@@ -16,13 +19,14 @@ from CRAFT_modules.craft import CRAFT
 from collections import OrderedDict
 import torch.backends.cudnn as cudnn
 
+from shapely.geometry import Polygon
+
 def pil_load_img(path):
     image = Image.open(path)
     image = np.array(image)
     return image
 
-        # Leehakho
-
+# Leehakho
 def CRAFT_net(network, image, text_threshold, link_threshold, low_text, cuda, poly):
 
     t0 = time.time()
@@ -73,6 +77,65 @@ def CRAFT_net(network, image, text_threshold, link_threshold, low_text, cuda, po
 
     return boxes, polys
 
+def ccw(p1, p2, p3):
+    return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0])
+
+def convex_hull(polys):
+    points = []
+    for poly in polys:
+        for p in poly:
+            points.append([p[0],p[1]])
+    points = sorted(points)
+    lower = []
+    for p in points:
+        while len(lower) >= 2 and ccw(lower[-2], lower[-1], p) < 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(points):
+        while len(upper) >= 2 and ccw(upper[-2], upper[-1], p) < 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+def merge_polygon(polys, max):
+    poly = convex_hull(polys)
+    if len(poly) == max:
+        return poly
+    elif len(poly) > max:
+        while len(poly) != max:
+            i = random.randint(0,len(poly)-1)
+            del poly[i]
+    else:
+        while len(poly) != max:
+            i = random.randint(1,len(poly)-1)
+            a = []
+            x = []
+            y = []
+            #print(i)
+            x.append(poly[i][0])
+            x.append(poly[i - 1][0])
+            y.append(poly[i][1])
+            y.append(poly[i - 1][1])
+            a.append(statistics.median(x))
+            a.append(statistics.median(y))
+            poly.insert(i,a)
+
+        # add_num = max - len(poly)
+        # step = int(add_num / len(poly))
+        # p = []
+        # for i in range(len(poly)):
+        #     p.append(poly[i])
+        #     if (i == step):
+        #         x = np.median(int(poly[i + 1][0]), int(poly[i][0]))
+        #         y = np.median(int(poly[i + 1][1]), int(poly[i][1]))
+        #         temp_poly = [x,y]
+        #         p.append(temp_poly)
+        # points = torch.tensor(p)
+        # print(points.shape)
+        #print(poly)
+    return poly
+
 def merge_bbox(bbox, img):
     # originImg = img
     # print(img.shape)
@@ -82,10 +145,10 @@ def merge_bbox(bbox, img):
     mp.append(0)
     mp.append(0)
     mp.append(img_h)
-    i = 0
     # bbox merge
+    #print(bbox)
     for p0, p1, p2, p3 in bbox:
-        i += 1
+
         if int(p0[0]) < mp[0]:
             mp[0] = int(p0[0])
 
@@ -97,6 +160,21 @@ def merge_bbox(bbox, img):
 
         if int(p0[1]) < mp[3]:
             mp[3] = int(p0[1])
+
+            #print(mp[0], mp[1], mp[2], mp[3])
+            # mp[0] = mp[0] * 1.2
+            # mp[1] = mp[1] * 0.8
+            # mp[2] = mp[2] * 1.2
+            # mp[3] = mp[3] * 0.8
+
+        x = (mp[2] - mp[0])/8
+        y = (mp[3] - mp[1])/8
+
+        mp[2] = mp[2] - x
+        mp[0] = mp[0] + x
+        mp[3] = mp[3] - y
+        mp[1] = mp[1] + y
+    #print(torch.FloatTensor([[[mp[0], mp[1]], [mp[2], mp[1]], [mp[2], mp[3]], [mp[0], mp[3]]]]).cuda())
     return torch.FloatTensor([[[mp[0], mp[1]], [mp[2], mp[1]], [mp[2], mp[3]], [mp[0], mp[3]]]]).cuda()
 
 class TextInstance(object):
@@ -134,6 +212,13 @@ class TextInstance(object):
         mask = np.zeros(size, np.uint8)
         cv2.fillPoly(mask, [self.points.astype(np.int32)], color=(1,))
         control_points = get_sample_point(mask, cfg.num_points, cfg.approx_factor)
+        return control_points
+
+    def get_CRAFT_point(self, size=None):
+        mask = np.zeros(size, np.uint8)
+        cv2.fillPoly(mask, [self.points.astype(np.int32)], color=(1,))
+        contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        control_points = np.array(self.points[:cfg.num_points,:]).astype(np.int32)
         return control_points
 
     def get_control_points(self, size=None):
@@ -174,21 +259,22 @@ class TextDataset(object):
         self.th_b = 0.4
 
         # Leehakho
-        #torch.multiprocessing.set_start_method('spawn', force=True)
-        self.cuda = True
-        self.net = CRAFT()  # initialize
-        self.trained_model = 'CRAFT_weights/craft_mlt_25k.pth'
-        # print('Loading weights from checkpoint (' + trained_model + ')')
-        if self.cuda:
-            self.net.load_state_dict(self.copyStateDict(torch.load(self.trained_model)))
-        else:
-            self.net.load_state_dict(self.copyStateDict(torch.load(self.trained_model, map_location='cpu')))
+        if cfg.CRAFT is True:
+            # torch.multiprocessing.set_start_method('spawn', force=True)
+            self.cuda = True
+            self.net = CRAFT()  # initialize
+            self.trained_model = 'CRAFT_weights/craft_mlt_25k.pth'
+            # print('Loading weights from checkpoint (' + trained_model + ')')
+            if self.cuda:
+                self.net.load_state_dict(self.copyStateDict(torch.load(self.trained_model)))
+            else:
+                self.net.load_state_dict(self.copyStateDict(torch.load(self.trained_model, map_location='cpu')))
 
-        if self.cuda:
-            self.net = self.net.cuda()
-            self.net = torch.nn.DataParallel(self.net)
-            cudnn.benchmark = False
-        self.net.eval()
+            if self.cuda:
+                self.net = self.net.cuda()
+                self.net = torch.nn.DataParallel(self.net)
+                cudnn.benchmark = False
+            self.net.eval()
 
     # Leehakho
     def copyStateDict(info, state_dict):
@@ -206,11 +292,13 @@ class TextDataset(object):
 
     #Leehakho
     def get_proposal_CRAFT(self, img):
-        bboxes, polys = CRAFT_net(network=self.net, image=img, text_threshold=0.4, link_threshold=0.2, low_text=0.2, cuda=True,
+        bboxes, polys = CRAFT_net(network=self.net, image=img, text_threshold=0.3, link_threshold=0.2, low_text=0.2, cuda=True,
                                        poly=True)  # 0.7 0.4 0.4 -> 0.3 0.2 0.2
-        polys = merge_bbox(bboxes, img)
-        ctrl_points = polys
-        return ctrl_points
+        if cfg.max_points == 5:
+            polys = merge_bbox(bboxes, img)
+        else:
+            polys = merge_polygon(polys,20)
+        return polys
 
     @staticmethod
     def sigmoid_alpha(x, k):
@@ -297,8 +385,42 @@ class TextDataset(object):
             polygon.points[:, 0] = np.clip(polygon.points[:, 0], 1, w - 2)
             polygon.points[:, 1] = np.clip(polygon.points[:, 1], 1, h - 2)
 
-            #gt_points[idx, :, :] = polygon.get_sample_point(size=(h, w))
-            gt_points[idx, :, :] = polygon.points #Leehakho
+            if cfg.CRAFT is True:
+                #gt_points[idx, :, :] = polygon.get_sample_point(size=(h, w))
+                #gt_points[idx,:,:] = polygon.points
+                pl = []
+                pl.append(polygon.points[0])
+                pl.append(polygon.points[1])
+                pl.append(polygon.points[2])
+                pl.append(polygon.points[3])
+
+                for i in range(1,5):
+                    a = []
+                    a.append(polygon.points[0][0] + (((polygon.points[1][0]-polygon.points[0][0])/5)*i))
+                    a.append(polygon.points[0][1] + (((polygon.points[1][1]-polygon.points[0][1])/5)*i))
+                    pl.insert(i,a)
+                for i in range(1,5):
+                    a = []
+                    a.append(polygon.points[2][0] + (((polygon.points[1][0]-polygon.points[2][0])/5)*i))
+                    a.append(polygon.points[2][1] + (((polygon.points[1][1]-polygon.points[2][1])/5)*i))
+                    pl.insert(i+5,a)
+                for i in range(1,5):
+                    a = []
+                    a.append(polygon.points[3][0] + (((polygon.points[2][0]-polygon.points[3][0])/5)*i))
+                    a.append(polygon.points[3][1] + (((polygon.points[2][1]-polygon.points[3][1])/5)*i))
+                    pl.insert(i+10,a)
+                for i in range(1,5):
+                    a = []
+                    a.append(polygon.points[3][0] + (((polygon.points[0][0]-polygon.points[3][0])/5)*i))
+                    a.append(polygon.points[3][1] + (((polygon.points[0][1]-polygon.points[3][1])/5)*i))
+                    pl.insert(i+15,a)
+
+                gt_points[idx,:,:] = pl
+            else:
+                gt_points[idx, :, :] = polygon.get_sample_point(size=(h, w))
+
+
+
             cv2.fillPoly(tr_mask, [polygon.points.astype(np.int)], color=(idx + 1,))
 
             inst_mask = mask_zeros.copy()
@@ -311,14 +433,15 @@ class TextDataset(object):
             else:
                 ignore_tags[idx] = 1
 
-            # proposal_points[idx, :, :] = \
-            #     self.generate_proposal_point(dmp / (np.max(dmp)+1e-9) >= self.th_b, cfg.num_points,
-            #                                  cfg.approx_factor, jitter=self.jitter, distance=self.th_b * np.max(dmp))  #Leehakho
+            if cfg.CRAFT is True:
+                points = self.get_proposal_CRAFT(origin_img)
+                proposal_points[idx, :, :] = torch.tensor(points).cpu() #Leehakho
+            else:
+                proposal_points[idx, :, :] = \
+                    self.generate_proposal_point(dmp / (np.max(dmp) + 1e-9) >= self.th_b, cfg.num_points,
+                                                 cfg.approx_factor, jitter=self.jitter,
+                                                 distance=self.th_b * np.max(dmp))
 
-            points = self.get_proposal_CRAFT(origin_img)
-            #print(points)
-            proposal_points[idx, :, :] = points.cpu()
-            #print(proposal_points[idx, :, :])
             distance_field[:, :] = np.maximum(distance_field[:, :], dmp / (np.max(dmp)+1e-9))
 
             weight_matrix[inst_mask > 0] = 1. / np.sqrt(inst_mask.sum())
@@ -342,7 +465,7 @@ class TextDataset(object):
         np.random.seed()
         origin_img = image
         if self.transform:
-            origin_img = ResizeSqr(origin_img,[224,224])
+            origin_img = ResizeSqr(origin_img,[640,640])
             image, polygons = self.transform(image, copy.copy(polygons))
         #cv2.imwrite('/home/ohh/PycharmProject/TextBPN-main/output/temp/' + 'a.jpg', image)
         train_mask, tr_mask, \
@@ -370,25 +493,20 @@ class TextDataset(object):
         origin_img = image
         #polygons = list(TextInstance(points = np.array([[[196, 582],[1209, 591],1210, 754],[185, 749]]), orient ='c', text='undefined'))
         if self.transform:
-            origin_img = ResizeSqr(origin_img,[224,224])
+            origin_img = ResizeSqr(origin_img,[640,640])
             image, polygons = self.transform(image, copy.copy(polygons))
+        if cfg.CRAFT is True:
+            polygons = self.get_proposal_CRAFT(origin_img).cpu() #Leehakho
+        else:
+            train_mask, tr_mask, \
+            distance_field, direction_field, \
+            weight_matrix, gt_points, polygons, ignore_tags = self.make_text_region(image, polygons, origin_img)
 
-        polygons = self.get_proposal_CRAFT(origin_img).cpu() #Leehakho
         points = np.zeros((cfg.max_annotation, cfg.max_points, 2))
         length = np.zeros(cfg.max_annotation, dtype=int)
         label_tag = np.zeros(cfg.max_annotation, dtype=int)
 
-        # if polygons is not None:
-        #     for i, polygon in enumerate(polygons):
-        #         pts = polygon.points
-        #         points[i, :pts.shape[0]] = polygon.points
-        #         length[i] = pts.shape[0]
-        #         if polygon.text != '#':
-        #             label_tag[i] = 1
-        #         else:
-        #             label_tag[i] = -1
-
-        #Leehakho
+        # Leehakho
         if polygons is not None:
             idx = 0
             for i, polygon in enumerate(polygons):
@@ -398,17 +516,27 @@ class TextDataset(object):
                 label_tag[i] = 1
                 idx = i
 
-
-        meta = {
-            'image_id': image_id,
-            'image_path': image_path,
-            'annotation': points,
-            'n_annotation': length,
-            'index': idx,
-            'label_tag': label_tag,
-            'Height': H,
-            'Width': W
-        }
+        if cfg.CRAFT is True:
+            meta = {
+                'image_id': image_id,
+                'image_path': image_path,
+                'annotation': points,
+                'n_annotation': length,
+                'index': idx,
+                'label_tag': label_tag,
+                'Height': H,
+                'Width': W
+            }
+        else:
+            meta = {
+                'image_id': image_id,
+                'image_path': image_path,
+                'annotation': points,
+                'n_annotation': length,
+                'label_tag': label_tag,
+                'Height': H,
+                'Width': W
+            }
 
         # to pytorch channel sequence
         image = image.transpose(2, 0, 1)

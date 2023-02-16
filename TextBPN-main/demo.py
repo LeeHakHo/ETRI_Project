@@ -53,8 +53,9 @@ def inference(model, test_loader, output_dir):
         input_dict = dict()
 
         input_dict['img'] = to_device(image) #meta에 polygon 정보도 없고 그냥 image만 들어감
-        input_dict['annotation'] = meta['annotation']
-        input_dict['index'] = meta['index']
+        if cfg.CRAFT is True:
+            input_dict['annotation'] = meta['annotation']
+            input_dict['index'] = meta['index']
         # get detection result
         start = time.time()
         torch.cuda.synchronize()
@@ -84,7 +85,7 @@ def inference(model, test_loader, output_dir):
         gt_vis = visualize_gt(img_show, gt_contour, label_tag)
 
         show_map = np.concatenate([heat_map, gt_vis], axis=1)
-        show_map = cv2.resize(show_map, (320 * 3, 320))
+        show_map = cv2.resize(show_map, (320 * 5, 320))
         im_vis = np.concatenate([show_map, show_boundary], axis=0)
 
         path = os.path.join(cfg.vis_dir, '{}_test'.format(cfg.exp_name), meta['image_id'][idx].split(".")[0]+".jpg")

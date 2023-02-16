@@ -200,7 +200,6 @@ def main():
     model = TextNet(backbone=cfg.net, is_training=True)
     if cfg.mgpu:
         model = nn.DataParallel(model)
-
     model = model.to(cfg.device)
     if cfg.cuda:
         cudnn.benchmark = True
