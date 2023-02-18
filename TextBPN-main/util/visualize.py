@@ -11,7 +11,7 @@ import pylab as plt
 from matplotlib import cm
 
 
-def visualize_network_output(output_dict, input_dict, mode='train'):
+def visualize_network_output(output_dict, input_dict,epoch, mode='train'):
     vis_dir = os.path.join(cfg.vis_dir, cfg.exp_name + '_' + mode)
     if not os.path.exists(vis_dir):
         os.mkdir(vis_dir)
@@ -30,114 +30,103 @@ def visualize_network_output(output_dict, input_dict, mode='train'):
 
     b, c, _, _ = fy_preds.shape
     for i in range(b):
+        if i < 3:
+            fig = plt.figure(figsize=(12, 9))
 
-        fig = plt.figure(figsize=(12, 9))
+            mask_pred = fy_preds[i, 0, :, :]
+            distance_pred = fy_preds[i, 1, :, :]
+            norm_pred = np.sqrt(fy_preds[i, 2, :, :] ** 2 + fy_preds[i, 3, :, :] ** 2)
+            angle_pred = 180 / math.pi * np.arctan2(fy_preds[i, 2, :, :], fy_preds[i, 3, :, :] + 0.00001)
 
-        mask_pred = fy_preds[i, 0, :, :]
-        distance_pred = fy_preds[i, 1, :, :]
-        norm_pred = np.sqrt(fy_preds[i, 2, :, :] ** 2 + fy_preds[i, 3, :, :] ** 2)
-        angle_pred = 180 / math.pi * np.arctan2(fy_preds[i, 2, :, :], fy_preds[i, 3, :, :] + 0.00001)
+            ax1 = fig.add_subplot(241) #341 -> 241
+            ax1.set_title('mask_pred')
+            # ax1.set_autoscale_on(True)
+            im1 = ax1.imshow(mask_pred, cmap=cm.jet)
+            # plt.colorbar(im1, shrink=0.5)
 
-        ax1 = fig.add_subplot(241) # 341->241
-        ax1.set_title('mask_pred')
-        # ax1.set_autoscale_on(True)
-        im1 = ax1.imshow(mask_pred, cmap=cm.jet)
-        # plt.colorbar(im1, shrink=0.5)
+            ax2 = fig.add_subplot(242) #342 -> 242
+            ax2.set_title('distance_pred')
+            # ax2.set_autoscale_on(True)
+            im2 = ax2.imshow(distance_pred, cmap=cm.jet)
+            # plt.colorbar(im2, shrink=0.5)
 
-        ax2 = fig.add_subplot(242) #342->242
-        ax2.set_title('distance_pred')
-        # ax2.set_autoscale_on(True)
-        im2 = ax2.imshow(distance_pred, cmap=cm.jet)
-        # plt.colorbar(im2, shrink=0.5)
-
-        #LeeHakho
-        """
-        ax3 = fig.add_subplot(343)
-        ax3.set_title('norm_pred')
-        # ax3.set_autoscale_on(True)
-        im3 = ax3.imshow(norm_pred, cmap=cm.jet)
-        # plt.colorbar(im3, shrink=0.5)
-
-        ax4 = fig.add_subplot(344)
-        ax4.set_title('angle_pred')
-        # ax4.set_autoscale_on(True)
-        im4 = ax4.imshow(angle_pred, cmap=cm.jet)
-        # plt.colorbar(im4, shrink=0.5)
-
-        mask_gt = tr_mask[i]
-        distance_gt = distance_field[i]
-        # gt_flux = 0.999999 * direction_field[i] / (direction_field[i].norm(p=2, dim=0) + 1e-9)
-        gt_flux = direction_field[i].cpu().numpy()
-        norm_gt = np.sqrt(gt_flux[0, :, :] ** 2 + gt_flux[1, :, :] ** 2)
-        angle_gt = 180 / math.pi * np.arctan2(gt_flux[0, :, :], gt_flux[1, :, :]+0.00001)
-
-        ax11 = fig.add_subplot(345)
-        # ax11.set_title('mask_gt')
-        # ax11.set_autoscale_on(True)
-        im11 = ax11.imshow(mask_gt, cmap=cm.jet)
-        # plt.colorbar(im11, shrink=0.5)
-
-        ax22 = fig.add_subplot(346)
-        # ax22.set_title('distance_gt')
-        # ax22.set_autoscale_on(True)
-        im22 = ax22.imshow(distance_gt, cmap=cm.jet)
-        # plt.colorbar(im22, shrink=0.5)
-
-        ax33 = fig.add_subplot(347)
-        # ax33.set_title('norm_gt')
-        # ax33.set_autoscale_on(True)
-        im33 = ax33.imshow(norm_gt, cmap=cm.jet)
-        # plt.colorbar(im33, shrink=0.5)
-
-        ax44 = fig.add_subplot(348)
-        # ax44.set_title('angle_gt')
-        # ax44.set_autoscale_on(True)
-        im44 = ax44.imshow(angle_gt, cmap=cm.jet)
-        # plt.colorbar(im44, shrink=0.5)
-        """
-
-        img_show = image[i].permute(1, 2, 0).cpu().numpy()
-        img_show = ((img_show * cfg.stds + cfg.means) * 255).astype(np.uint8)
-        img_show = np.ascontiguousarray(img_show[:, :, ::-1])
-        shows = []
-        gt = gt_tags[i]
-        gt_idx = np.where(ignore_tags[i] > 0)
-        gt_py = gt[gt_idx[0], :, :]
-        index = torch.where(inds[0] == i)[0]
-        #index = i
-        init_py = init_polys[index].detach().cpu().numpy()
-        #init_py = init_polys.detach().cpu().numpy() #Leehakho
-        image_show = img_show.copy()
-        #cv2.drawContours(image_show, init_py.astype(np.int32), -1, (255, 255, 0), 2)
-        #cv2.drawContours(image_show, gt_py.astype(np.int32), -1, (0, 255, 0), 2)
-        shows.append(image_show)
-        for py in py_preds:
-            contours = py[index].detach().cpu().numpy()
-            #contours = py.detach().cpu().numpy() #Leehakho
-            image_show = img_show.copy()
-            cv2.drawContours(image_show, init_py.astype(np.int32), -1, (255, 255, 0), 2) #노란색 CRAFT 결과 - 나올때도 있고 안나올 때도 있음
-            cv2.drawContours(image_show, gt_py.astype(np.int32), -1, (0, 255, 0), 2) #이게 이상한 마름모
-            cv2.drawContours(image_show, contours.astype(np.int32), -1, (0, 0, 255), 2) #이게 파란색 직사각형
-            shows.append(image_show)
-
-        #Leehakho
-        for idx, im_show in enumerate(shows):
-            axb = fig.add_subplot(2, 4, 5+idx -2) # 3,4,9+idx-2 -> 2,4,5+idx-2
-            # axb.set_title('boundary_{}'.format(idx))
-            # axb.set_autoscale_on(True)
-            im11 = axb.imshow(im_show, cmap=cm.jet)
+            #Leehakho
+            """
+            ax3 = fig.add_subplot(343)
+            ax3.set_title('norm_pred')
+            # ax3.set_autoscale_on(True)
+            im3 = ax3.imshow(norm_pred, cmap=cm.jet)
+            # plt.colorbar(im3, shrink=0.5)
+    
+            ax4 = fig.add_subplot(344)
+            ax4.set_title('angle_pred')
+            # ax4.set_autoscale_on(True)
+            im4 = ax4.imshow(angle_pred, cmap=cm.jet)
+            # plt.colorbar(im4, shrink=0.5)
+    
+            mask_gt = tr_mask[i]
+            distance_gt = distance_field[i]
+            # gt_flux = 0.999999 * direction_field[i] / (direction_field[i].norm(p=2, dim=0) + 1e-9)
+            gt_flux = direction_field[i].cpu().numpy()
+            norm_gt = np.sqrt(gt_flux[0, :, :] ** 2 + gt_flux[1, :, :] ** 2)
+            angle_gt = 180 / math.pi * np.arctan2(gt_flux[0, :, :], gt_flux[1, :, :]+0.00001)
+    
+            ax11 = fig.add_subplot(345)
+            # ax11.set_title('mask_gt')
+            # ax11.set_autoscale_on(True)
+            im11 = ax11.imshow(mask_gt, cmap=cm.jet)
             # plt.colorbar(im11, shrink=0.5)
+    
+            ax22 = fig.add_subplot(346)
+            # ax22.set_title('distance_gt')
+            # ax22.set_autoscale_on(True)
+            im22 = ax22.imshow(distance_gt, cmap=cm.jet)
+            # plt.colorbar(im22, shrink=0.5)
+    
+            ax33 = fig.add_subplot(347)
+            # ax33.set_title('norm_gt')
+            # ax33.set_autoscale_on(True)
+            im33 = ax33.imshow(norm_gt, cmap=cm.jet)
+            # plt.colorbar(im33, shrink=0.5)
+    
+            ax44 = fig.add_subplot(348)
+            # ax44.set_title('angle_gt')
+            # ax44.set_autoscale_on(True)
+            im44 = ax44.imshow(angle_gt, cmap=cm.jet)
+            # plt.colorbar(im44, shrink=0.5)
+            """
+            img_show = image[i].permute(1, 2, 0).cpu().numpy()
+            img_show = ((img_show * cfg.stds + cfg.means) * 255).astype(np.uint8)
+            img_show = np.ascontiguousarray(img_show[:, :, ::-1])
+            shows = []
+            gt = gt_tags[i]
+            gt_idx = np.where(ignore_tags[i] > 0)
+            gt_py = gt[gt_idx[0], :, :]
+            index = torch.where(inds[0] == i)[0]
+            init_py = init_polys[index].detach().cpu().numpy()
 
-        # for idx, im_show in enumerate(shows):
-        #     axb = fig.add_subplot(3, 4, 9+idx)
-        #     # axb.set_title('boundary_{}'.format(idx))
-        #     # axb.set_autoscale_on(True)
-        #     im11 = axb.imshow(im_show, cmap=cm.jet)
-        #     # plt.colorbar(im11, shrink=0.5)
+            image_show = img_show.copy()
+            cv2.drawContours(image_show, init_py.astype(np.int32), -1, (255, 255, 0), 2)
+            cv2.drawContours(image_show, gt_py.astype(np.int32), -1, (0, 255, 0), 2)
+            shows.append(image_show)
+            for py in py_preds:
+                contours = py[index].detach().cpu().numpy()
+                image_show = img_show.copy()
+                cv2.drawContours(image_show, init_py.astype(np.int32), -1, (255, 255, 0), 2)
+                cv2.drawContours(image_show, gt_py.astype(np.int32), -1, (0, 255, 0), 2)
+                cv2.drawContours(image_show, contours.astype(np.int32), -1, (0, 0, 255), 2)
+                shows.append(image_show)
 
-        path = os.path.join(vis_dir, '{}.png'.format(i))
-        plt.savefig(path)
-        plt.close(fig)
+            for idx, im_show in enumerate(shows):
+                axb = fig.add_subplot(2, 4, 5+idx) # 3,4,9+idx-2 -> 2,4,5+idx-2
+                # axb.set_title('boundary_{}'.format(idx))
+                # axb.set_autoscale_on(True)
+                im11 = axb.imshow(im_show, cmap=cm.jet)
+                # plt.colorbar(im11, shrink=0.5)
+
+            path = os.path.join(vis_dir,'epoch{}_{}.png'.format(epoch,i))
+            plt.savefig(path)
+            plt.close(fig)
 
 
 def visualize_gt(image, contours, label_tag):
@@ -151,6 +140,7 @@ def visualize_gt(image, contours, label_tag):
                                [contours[i] for i, tag in enumerate(label_tag) if tag <0], True, (0, 255, 0), 3)
 
     show_gt = cv2.resize(image_show, (320, 320))
+
     return show_gt
 
 
@@ -164,14 +154,11 @@ def visualize_detection(image, output_dict, meta=None):
     shows = []
 
     init_py = init_polys.data.cpu().numpy()
-
-
     # path = os.path.join(cfg.vis_dir, '{}_test'.format(cfg.exp_name),
     #                     meta['image_id'][0].split(".")[0] + "_init.png")
     # im_show0 = image_show.copy()
     # cv2.drawContours(im_show0, init_py.astype(np.int32), -1, (255, 255, 0), 3)
     # cv2.imwrite(path, im_show0)
-
 
     for idx, py in enumerate(py_preds):
         contours = py.data.cpu().numpy()

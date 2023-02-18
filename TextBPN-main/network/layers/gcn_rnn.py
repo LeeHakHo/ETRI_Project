@@ -20,6 +20,9 @@ class MeanAggregator(nn.Module):
         super(MeanAggregator, self).__init__()
 
     def forward(self, features, A):
+        #print(features.device, A.device)
+        A = A.to(features.device) #Leehakho
+        #print(features.device, A.device)
         x = torch.bmm(A, features)
         return x
 
@@ -67,6 +70,7 @@ class GCN_RNN(nn.Module):
 
     def forward(self, x, A):
         x = self.bn0(x)
+
         # # rnn block
         yl = x.permute(2, 0, 1)
         yl, _ = self.rnn(yl)

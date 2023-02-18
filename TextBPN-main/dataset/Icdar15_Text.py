@@ -92,7 +92,7 @@ if __name__ == '__main__':
     )
 
     trainset = Icdar15Text(
-        data_root='/home/ohh/dataset/ICDAR/ICDAR2015/',
+        data_root='../data/Icdar2015',
         is_training=True,
         transform=transform
     )

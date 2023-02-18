@@ -9,10 +9,10 @@ import torch.backends.cudnn as cudnn
 import torch.utils.data as data
 from torch.optim import lr_scheduler
 
-from dataset import SynthText, TotalText, Ctw1500Text, Icdar15Text, Mlt2017Text, TD500Text, GCN
+from dataset import SynthText, TotalText, Ctw1500Text, Icdar15Text, Mlt2017Text, TD500Text,GCN
 from network.loss import TextLoss
 from network.textnet import TextNet
-from util.augmentation import Augmentation, BaseTransform
+from util.augmentation import Augmentation
 from cfglib.config import config as cfg, update_config, print_config
 from util.misc import AverageMeter
 from util.misc import mkdirs, to_device
@@ -28,10 +28,12 @@ train_step = 0
 
 
 def save_model(model, epoch, lr, optimzer):
+
     save_dir = os.path.join(cfg.save_dir, cfg.exp_name)
     if not os.path.exists(save_dir):
         mkdirs(save_dir)
-    save_path = os.path.join(save_dir, 'TextBPN_{}_{}.pth'.format(model.backbone_name, epoch))
+
+    save_path = os.path.join(save_dir, 'TextBPN_{}_{}.pth'.format(cfg.max_points, epoch))
     print('Saving to {}.'.format(save_path))
     state_dict = {
         'lr': lr,
@@ -73,7 +75,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
     data_time = AverageMeter()
     end = time.time()
     model.train()
-    scheduler.step()
+    # scheduler.step()
 
     print('Epoch: {} : LR = {}'.format(epoch, scheduler.get_lr()))
 
@@ -83,7 +85,6 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
         train_step += 1
         input_dict = _parse_data(inputs)
         output_dict = model(input_dict)
-        #print(input_dict.keys() ,"/", output_dict.keys()) #dict_keys(['img', 'train_mask', 'tr_mask', 'distance_field', 'direction_field', 'weight_matrix', 'gt_points', 'proposal_points', 'ignore_tags']) / dict_keys(['fy_preds', 'py_preds', 'init_polys', 'inds'])
         loss_dict = criterion(input_dict, output_dict, eps=epoch)
         loss = loss_dict["total_loss"]
         # backward
@@ -103,11 +104,8 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
         gc.collect()
-
-        #if cfg.viz: and
-        if i % cfg.viz_freq == 0: #and i > 0 and epoch % 2 == 0:
-            print("save train image")
-            visualize_network_output(output_dict, input_dict, mode='train')
+        if i % cfg.viz_freq == 0:
+            visualize_network_output(output_dict, input_dict,epoch, mode='train')
 
         if i % cfg.display_freq == 0:
             print_inform = "({:d} / {:d}) ".format(i, len(train_loader))
@@ -115,8 +113,8 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
                 print_inform += " {}: {:.4f} ".format(k, v.item())
             print(print_inform)
 
-    #print(epoch)
-    if epoch % cfg.save_freq == 0: # and epoch > 200:
+    if epoch % cfg.save_freq == 0:
+        print("save model")
         save_model(model, epoch, scheduler.get_lr(), optimizer)
 
     print('Training Loss: {}'.format(losses.avg))
@@ -125,15 +123,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
 def main():
 
     global lr
-    if cfg.exp_name == 'GCN_105':
-        trainset = GCN(
-            data_root='data/GCN_105',
-            ignore_list=None,
-            is_training=True,
-            transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
-        )
-
-    elif cfg.exp_name == 'Totaltext':
+    if cfg.exp_name == 'Totaltext':
         trainset = TotalText(
             data_root='data/total-text-mat',
             ignore_list=None,
@@ -166,7 +156,7 @@ def main():
 
     elif cfg.exp_name == 'Icdar2015':
         trainset = Icdar15Text(
-            data_root='/home/ohh/dataset/ICDAR/ICDAR15/',
+            data_root='data/Icdar2015',
             is_training=True,
             transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
         )
@@ -176,17 +166,22 @@ def main():
             data_root='data/MLT2017',
             is_training=True,
             transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
-            #transform=None
+        )
+        valset = None
+
+    elif cfg.exp_name == 'TD500':
+        trainset = TD500Text(
+            data_root='/home/ohh/dataset/TD500/',
+            is_training=True,
+            transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
         )
         valset = None
 
     elif cfg.exp_name == 'GCN':
-        trainset = TD500Text(
-            data_root='/home/ohh/dataset/GCN_105',
-            #data_root='/home/ohh/dataset/',
+        trainset = GCN(
+            data_root='/home/ohh/dataset/GCN_105/',
             is_training=True,
-            #transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
-            transform=BaseTransform(size=[cfg.input_size,cfg.input_size], mean=cfg.means, std=cfg.stds) #Leehakho
+            transform=Augmentation(size=cfg.input_size, mean=cfg.means, std=cfg.stds)
         )
         valset = None
 
@@ -200,6 +195,7 @@ def main():
     model = TextNet(backbone=cfg.net, is_training=True)
     if cfg.mgpu:
         model = nn.DataParallel(model)
+
     model = model.to(cfg.device)
     if cfg.cuda:
         cudnn.benchmark = True

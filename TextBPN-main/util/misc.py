@@ -317,7 +317,7 @@ def split_edge_seqence_by_step(points, long_edge1, long_edge2, step=16.0):
 
     edge_length1 = [norm2(points[e1] - points[e2]) for e1, e2 in long_edge1]
     edge_length2 = [norm2(points[e1] - points[e2]) for e1, e2 in long_edge2]
-    # bbox 수를 계산하려면 긴 쪽 사용
+    # 取长边 计算bbox个数
     total_length = (sum(edge_length1)+sum(edge_length2))/2
     n_parts = math.ceil(float(total_length) / step)
     try:
@@ -378,6 +378,7 @@ def get_sample_point(text_mask, num_points, approx_factor):
     e_index = [(i, (i + 1) % pts_num) for i in range(pts_num)]
     ctrl_points = split_edge_seqence(approx, e_index, num_points)
     ctrl_points = np.array(ctrl_points[:num_points, :]).astype(np.int32)
+
     return ctrl_points
 
 

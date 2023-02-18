@@ -73,7 +73,6 @@ def getDetBoxes_core(textmap, linkmap, text_threshold, link_threshold, low_text)
         startidx = box.sum(axis=1).argmin()
         box = np.roll(box, 4-startidx, 0)
         box = np.array(box)
-
         det.append(box)
         mapper.append(k)
 

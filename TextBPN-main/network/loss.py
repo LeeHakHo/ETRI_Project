@@ -109,7 +109,6 @@ class TextLoss(nn.Module):
         #                                             direction_field, weight_matrix, tr_mask, train_mask)
 
         # boundary point loss
-        #print(gt_tags[0])
         point_loss = self.PolyMatchingLoss(py_preds, gt_tags[inds])
 
         if eps is None:

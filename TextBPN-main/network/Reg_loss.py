@@ -26,20 +26,13 @@ class PolyMatchingLoss(nn.Module):
 
         pidxall = torch.from_numpy(np.reshape(pidxall, newshape=(batch_size, -1))).to(device)
         self.feature_id = pidxall.unsqueeze_(2).long().expand(pidxall.size(0), pidxall.size(1), 2).detach()
-        #print(self.feature_id.shape)
+        print(self.feature_id.shape)
 
     def match_loss(self, pred, gt):
-
-        # if gt[0].shape == 0:
-        #     return 0
-
         batch_size = pred.shape[0]
         feature_id = self.feature_id.expand(batch_size, self.feature_id.size(1), 2)
-        if gt.nelement()==0:
-            return 0
-        #print(feature_id)
-        gt_expand = torch.gather(gt, 1, feature_id)
-        gt_expand =gt_expand.view(batch_size, self.pnum, self.pnum, 2)
+
+        gt_expand = torch.gather(gt, 1, feature_id).view(batch_size, self.pnum, self.pnum, 2)
         pred_expand = pred.unsqueeze(1)
 
         if self.loss_type == "L2":
@@ -55,9 +48,9 @@ class PolyMatchingLoss(nn.Module):
 
     def forward(self, pred_list, gt):
         loss = torch.tensor(0.)
-        #print(gt)
         for pred in pred_list:
             loss += self.match_loss(pred, gt)
+
         return loss/torch.tensor(len(pred_list))
 
 

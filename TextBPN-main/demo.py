@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.utils.data as data
-from dataset import TotalText, Ctw1500Text, Icdar15Text, Mlt2017Text, TD500Text
+from dataset import TotalText, Ctw1500Text, Icdar15Text, Mlt2017Text, TD500Text, GCN
 from network.textnet import TextNet
 from util.augmentation import BaseTransform
 from cfglib.config import config as cfg, update_config, print_config
@@ -17,7 +17,7 @@ from util.eval import deal_eval_total_text, deal_eval_ctw1500, deal_eval_icdar15
 from bounding_box import bounding_box as bb
 
 import multiprocessing
-multiprocessing.set_start_method("spawn", force=True)
+#multiprocessing.set_start_method("spawn", force=True)
 
 
 def osmkdir(out_dir):
@@ -52,14 +52,15 @@ def inference(model, test_loader, output_dir):
     for i, (image, meta) in enumerate(test_loader):
         input_dict = dict()
 
-        input_dict['img'] = to_device(image) #meta에 polygon 정보도 없고 그냥 image만 들어감
+        input_dict['img'] = to_device(image)
         if cfg.CRAFT is True:
             input_dict['annotation'] = meta['annotation']
-            input_dict['index'] = meta['index']
+            input_dict['ignore_tags'] = meta['ignore_tags']
         # get detection result
         start = time.time()
         torch.cuda.synchronize()
-        output_dict = model(input_dict) #여기서 output_dict에서 나온값으로 추론
+
+        output_dict = model(input_dict)
         end = time.time()
         if i > 0:
             total_time += end - start
@@ -85,7 +86,7 @@ def inference(model, test_loader, output_dir):
         gt_vis = visualize_gt(img_show, gt_contour, label_tag)
 
         show_map = np.concatenate([heat_map, gt_vis], axis=1)
-        show_map = cv2.resize(show_map, (320 * 5, 320))
+        show_map = cv2.resize(show_map, (320 * 3, 320))
         im_vis = np.concatenate([show_map, show_boundary], axis=0)
 
         path = os.path.join(cfg.vis_dir, '{}_test'.format(cfg.exp_name), meta['image_id'][idx].split(".")[0]+".jpg")
@@ -147,12 +148,12 @@ def main(vis_dir_path):
         )
     elif cfg.exp_name == "TD500":
         testset = TD500Text(
-            data_root='data/TD500',
+            data_root='/home/ohh/PycharmProject/TextBPN-main/',
             is_training=False,
             transform=BaseTransform(size=cfg.test_size, mean=cfg.means, std=cfg.stds)
         )
     elif cfg.exp_name == "GCN":
-        testset = TD500Text(
+        testset = GCN(
             data_root='/home/ohh/PycharmProject/TextBPN-main/',
             is_training=False,
             transform=BaseTransform(size=cfg.test_size, mean=cfg.means, std=cfg.stds)

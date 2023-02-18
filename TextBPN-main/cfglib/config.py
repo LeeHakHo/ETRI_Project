@@ -4,44 +4,43 @@ import os
 
 config = EasyDict()
 
-# LeeHakho
 config.CRAFT = True
 
-config.gpu = "0,1,2,3,4,5,6"
-
-# max point per polygon for annotation
-config.max_points = 20 #4 -> 20
-
-# control points number
-config.num_points = 20
+config.gpu = "0"
 
 # dataloader jobs number
 config.num_workers = 24
 
 # batch_size
-config.batch_size = 12
+config.batch_size = 4
 
 # training epoch number
-config.max_epoch = 200
+config.max_epoch = 20000
 
 config.start_epoch = 0
 
 # learning rate
-config.lr = 0.1
+config.lr = 1e-4
 
 # using GPU
 config.cuda = True
 
 config.output_dir = 'output'
 
-config.input_size = 640 #640 -> 224
+config.input_size = 640
 
 # max polygon per image
 # synText, total-text:600; CTW1500: 1200; icdar: ; MLT: ; TD500: .
-config.max_annotation = 8
+config.max_annotation = 1 #64->1 Leehakho
+
+# control points number
+config.num_points = 20
 
 # adj num for graph
 config.adj_num = 4
+
+# max point per polygon for annotation
+config.max_points = 20
 
 # use hard examples (annotated as '#')
 config.use_hard = True
@@ -59,6 +58,10 @@ config.cls_threshold = 0.8
 
 # Contour approximation factor
 config.approx_factor = 0.007
+
+config.means = (0.485, 0.456, 0.406)
+
+config.stds = (0.229, 0.224, 0.225)
 
 
 def update_config(config, extra_config):
