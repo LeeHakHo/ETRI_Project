@@ -20,30 +20,13 @@ from test import validation
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"]="2,3,4,5,6,7"
 
-def train(opt):
+def init_for_train(opt):
     """ dataset preparation """
-    if not opt.data_filtering_off:
-        print('Filtering the images containing characters which are not in opt.character')
-        print('Filtering the images whose label is longer than opt.batch_max_length')
-        # see https://github.com/clovaai/deep-text-recognition-benchmark/blob/6593928855fb7abb999a99f428b3e4477d4ae356/dataset.py#L130
-
-    opt.select_data = opt.select_data.split('-')
-    opt.batch_ratio = opt.batch_ratio.split('-')
     train_dataset = Batch_Balanced_Dataset(opt)
 
-    log = open(f'./saved_models/{opt.exp_name}/log_dataset.txt', 'a')
-    AlignCollate_valid = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
-    valid_dataset, valid_dataset_log = hierarchical_dataset(root=opt.valid_data, opt=opt)
-    valid_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=opt.batch_size,
-        shuffle=True,  # 'True' to check training progress with validation function.
-        num_workers=int(opt.workers),
-        collate_fn=AlignCollate_valid, pin_memory=True)
-    log.write(valid_dataset_log)
-    print('-' * 80)
-    log.write('-' * 80 + '\n')
-    log.close()
     """ model configuration """
     if 'CTC' in opt.Prediction:
         if opt.baiduCTC:
@@ -92,15 +75,13 @@ def train(opt):
     if 'CTC' in opt.Prediction:
         if opt.baiduCTC:
             # need to install warpctc. see our guideline.
-            #from warpctc_pytorch import CTCLoss
-            #criterion = CTCLoss()
+            # from warpctc_pytorch import CTCLoss
+            # criterion = CTCLoss()
             print("we do not support warpctc_pytorch")
         else:
             criterion = torch.nn.CTCLoss(zero_infinity=True).to(device)
     else:
         criterion = torch.nn.CrossEntropyLoss(ignore_index=0).to(device)  # ignore [GO] token = ignore index 0
-    # loss averager
-    loss_avg = Averager()
 
     # filter that only require gradient decent
     filtered_parameters = []
@@ -119,6 +100,71 @@ def train(opt):
     print("Optimizer:")
     print(optimizer)
 
+    return train_dataset, converter, model, criterion, optimizer
+
+def train_model(train_dataset, converter, model, criterion, optimizer):
+    # train part
+    image_tensors, labels = train_dataset.get_batch()
+    image = image_tensors.to(device)
+    text, length = converter.encode(labels, batch_max_length=opt.batch_max_length)
+    batch_size = image.size(0)
+    context_feature = []
+    if 'CTC' in opt.Prediction:
+        preds = model(image, text)
+        preds_size = torch.IntTensor([preds.size(1)] * batch_size)
+        if opt.baiduCTC:
+            preds = preds.permute(1, 0, 2)  # to use CTCLoss format
+            cost = criterion(preds, text, preds_size, length) / batch_size
+        else:
+            preds = preds.log_softmax(2).permute(1, 0, 2)
+            cost = criterion(preds, text, preds_size, length)
+
+    else:
+        output = model(image, text[:, :-1])  # align with Attention.forward
+        preds = output[0]
+        context_feature = output[1]
+        target = text[:, 1:]  # without [GO] Symbol
+        cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
+
+    # model.zero_grad()
+    # cost.backward(retain_graph=True)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+    # optimizer.step()
+
+    return model, context_feature, cost, labels, preds, target
+
+def train(opt):
+    if not opt.data_filtering_off:
+        print('Filtering the images containing characters which are not in opt.character')
+        print('Filtering the images whose label is longer than opt.batch_max_length')
+        # see https://github.com/clovaai/deep-text-recognition-benchmark/blob/6593928855fb7abb999a99f428b3e4477d4ae356/dataset.py#L130
+
+    opt.select_data = opt.select_data.split('-')
+    opt.batch_ratio = opt.batch_ratio.split('-')
+    print(opt)
+
+    log = open(f'./saved_models/{opt.exp_name}/log_dataset.txt', 'a')
+    AlignCollate_valid = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
+    valid_dataset, valid_dataset_log = hierarchical_dataset(root=opt.valid_data, opt=opt)
+    valid_loader = torch.utils.data.DataLoader(
+        valid_dataset, batch_size=opt.batch_size,
+        shuffle=True,  # 'True' to check training progress with validation function.
+        num_workers=int(opt.workers),
+        collate_fn=AlignCollate_valid, pin_memory=True)
+    log.write(valid_dataset_log)
+    print('-' * 80)
+    log.write('-' * 80 + '\n')
+    log.close()
+
+    train_dataset, converter, model, criterion, optimizer = init_for_train(opt)
+    if opt.lgmix is True:
+        sub_opt = opt
+        sub_opt.train_data = sub_opt.sub_train_data
+        #sub_opt.valid_data = sub_opt.sub_valid_data
+        #sub_opt.character = sub_opt.sub_character
+        sub_train_dataset, sub_converter, sub_model, sub_criterion, sub_optimizer = init_for_train(sub_opt)
+
+
     """ final options """
     # print(opt)
     with open(f'./saved_models/{opt.exp_name}/opt.txt', 'a') as opt_file:
@@ -130,6 +176,15 @@ def train(opt):
         print(opt_log)
         opt_file.write(opt_log)
 
+        if opt.lgmix is True:
+            opt_log = '------------ Sub_Options -------------\n'
+            args = vars(sub_opt)
+            for k, v in args.items():
+                opt_log += f'{str(k)}: {str(v)}\n'
+            opt_log += '---------------------------------------\n'
+            print(opt_log)
+            opt_file.write(opt_log)
+
     """ start training """
     start_iter = 0
     if opt.saved_model != '':
@@ -139,43 +194,82 @@ def train(opt):
         except:
             pass
 
+
+    # loss averager
+    loss_avg = Averager()
+    sub_loss_avg = Averager()
+    merge_loss_avg = Averager()
+
     start_time = time.time()
     best_accuracy = -1
     best_norm_ED = -1
     iteration = start_iter
 
-    while(True):
-        # train part
-        image_tensors, labels = train_dataset.get_batch()
-        image = image_tensors.to(device)
-        text, length = converter.encode(labels, batch_max_length=opt.batch_max_length)
-        batch_size = image.size(0)
+    while (True):
+        #try:
+        model, context_feature, cost, labels, preds, target = train_model(train_dataset, converter, model,
+                                                                          criterion, optimizer)
+        loss_avg.add(cost)
 
-        if 'CTC' in opt.Prediction:
-            preds = model(image, text)
-            preds_size = torch.IntTensor([preds.size(1)] * batch_size)
-            if opt.baiduCTC:
-                preds = preds.permute(1, 0, 2)  # to use CTCLoss format
-                cost = criterion(preds, text, preds_size, length) / batch_size
-            else:
-                preds = preds.log_softmax(2).permute(1, 0, 2)
-                cost = criterion(preds, text, preds_size, length)
+        # model.zero_grad()
+        # cost.backward(retain_graph=True)  # retain_graph=True
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        # optimizer.step()
 
-        else:
-            #preds, lg = model(image, text[:, :-1])  # align with Attention.forward
-            preds= model(image, text[:, :-1])  # align with Attention.forward
-            target = text[:, 1:]  # without [GO] Symbol
+        if opt.lgmix is True:
+            sub_model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
+                sub_train_dataset, sub_converter, sub_model, sub_criterion, sub_optimizer)
+
+            sub_loss_avg.add(sub_cost)
+            # print(context_feature.shape) #[64,57,256]
+            # print(sub_context_feature.shape)#[64,57,256]
+            cf = context_feature.chunk(2, dim=1)
+            sub_cf = sub_context_feature.chunk(2, dim=1)
+            ms_context_feature = torch.cat([cf[0], sub_cf[1]], dim=1)
+            sm_context_feature = torch.cat([sub_cf[1], cf[0]], dim=1)
+            # print(merge_context_feature.shape) #[64,57,256]
+            ms_labels = []
+            sm_labels = []
+            for ml, sl in zip(labels, sub_labels):
+                ms = ml[:len(ml) // 2] + sl[len(sl) // 2:].replace(" ", "")
+                sm = sl[len(sl) // 2:] + ml[:len(ml) // 2].replace(" ", "")
+                ms_labels.append(ms)
+                sm_labels.append(sm)
+            # print(merge_labels)
+            ms_text, ms_length = converter.encode(ms_labels, batch_max_length=opt.batch_max_length)
+            sm_text, sm_length = converter.encode(sm_labels, batch_max_length=opt.batch_max_length)
+
+            ms_preds = model(ms_context_feature, ms_text[:, :-1], cf=True)  # align with Attention.forward
+            sm_preds = model(sm_context_feature, sm_text[:, :-1], cf=True)  # align with Attention.forward
+            ms_target = ms_text[:, 1:]  # without [GO] Symbol
+            sm_target = sm_text[:, 1:]  # without [GO] Symbol
+            m_preds = preds
+            m_target = target
+            #print(m_preds.shape, ms_preds.shape)
+            preds = torch.cat([m_preds, ms_preds], dim=0)
+            target = torch.cat([m_target, ms_target], dim=0)
+            preds = torch.cat([preds, sm_preds], dim=0)
+            target = torch.cat([target, sm_target], dim=0)
+            # print(merge_preds.shape, preds.shape) #[48, 16, 2417])
+            # print(merge_target.shape, target.shape) #[48, 16])
             cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
+            merge_loss_avg.add(cost)
 
         model.zero_grad()
-        cost.backward()
+        cost.backward(retain_graph=True)  # retain_graph=True
         torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
         optimizer.step()
 
-        loss_avg.add(cost)
+        if opt.lgmix is True:
+            sub_model.zero_grad()
+            sub_cost.backward(retain_graph=True)
+            torch.nn.utils.clip_grad_norm_(sub_model.parameters(),
+                                           sub_opt.grad_clip)  # gradient clipping with 5 (Default)
+            sub_optimizer.step()
 
         # validation part
-        if (iteration + 1) % opt.valInterval == 0 or iteration == 0: # To see training progress, we also conduct validation when 'iteration == 0' 
+        if (
+                iteration + 1) % opt.valInterval == 0 or iteration == 0:  # To see training progress, we also conduct validation when 'iteration == 0'
             elapsed_time = time.time() - start_time
             # for log
             with open(f'./saved_models/{opt.exp_name}/log_train.txt', 'a') as log:
@@ -186,7 +280,7 @@ def train(opt):
                 model.train()
 
                 # training loss and validation loss
-                loss_log = f'[{iteration+1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
+                loss_log = f'[{iteration + 1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f},Sub_Train loss: {sub_loss_avg.val():0.5f},merge_Train loss: {merge_loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
                 loss_avg.reset()
 
                 current_model_log = f'{"Current_accuracy":17s}: {current_accuracy:0.3f}, {"Current_norm_ED":17s}: {current_norm_ED:0.2f}'
@@ -221,16 +315,24 @@ def train(opt):
         # save model per 1e+3 iter.
         if (iteration + 1) % 1e+3 == 0:
             torch.save(
-                model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration+1}.pth')
+                model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration + 1}.pth')
 
         if (iteration + 1) == opt.num_iter:
             print('end the training')
             sys.exit()
         iteration += 1
+        #except KeyboardInterrupt:
+        #   sys.exit()
+        #except:
+        #   print("error from train")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--lgmix', type=str, default=True) #Leehahko
+    parser.add_argument('--sub_train_data', required=False, help='path to sub training dataset')
+    #parser.add_argument('--sub_valid_data', required=False, help='path to sub validation dataset')
+    #parser.add_argument('--sub_character', type=str,default='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890')
     parser.add_argument('--exp_name', help='Where to store logs and models')
     parser.add_argument('--train_data', required=True, help='path to training dataset')
     parser.add_argument('--valid_data', required=True, help='path to validation dataset')

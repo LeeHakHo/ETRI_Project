@@ -121,7 +121,11 @@ def validation(model, criterion, evaluation_loader, converter, opt):
                 preds_str = converter.decode(preds_index.data, preds_size.data)
 
             else:
-                preds = model(image, text_for_pred, is_train=False)
+                if opt.lgmix is True:
+                    output = model(image, text_for_pred, is_train=False)
+                    preds = output[0]
+                else:
+                    preds = model(image, text_for_pred, is_train=False)
                 forward_time = time.time() - start_time
 
                 preds = preds[:, :text_for_loss.shape[1] - 1, :]
@@ -186,7 +190,7 @@ def validation(model, criterion, evaluation_loader, converter, opt):
                 confidence_score_list.append(confidence_score)
                 # print(pred, gt, pred==gt, confidence_score)
         except:
-            print("error\n")
+            print("error")
 
     accuracy = n_correct / float(length_of_data) * 100
     norm_ED = norm_ED / float(length_of_data)  # ICDAR2019 Normalized Edit Distance
@@ -253,6 +257,7 @@ def test(opt):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--lgmix', required=True, help='path to evaluation dataset')
     parser.add_argument('--eval_data', required=True, help='path to evaluation dataset')
     parser.add_argument('--benchmark_all_eval', action='store_true', help='evaluate 10 benchmark evaluation datasets')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=8)

@@ -30,7 +30,7 @@ from modules.prediction import Attention
 from PIL import Image
 
 #os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  # Arrange GPU devices starting from 0
-#os.environ["CUDA_VISIBLE_DEVICES"]= "7"  # Set the GPU 2 to use
+#os.environ["CUDA_VISIBLE_DEVICES"]= "2,3,4,5,6,7"  # Set the GPU 2 to use
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def tensor_to_image(tensor):
@@ -93,8 +93,19 @@ class Model(nn.Module):
 
         if opt.lg == True:
             self.lg_classifer = language_classifier(self.FeatureExtraction_output, opt.hidden_size, opt.num_class)
+        self.lgmix = opt.lgmix
 
-    def forward(self, input,text, is_train=True):
+    def forward(self, input, text, is_train=True, cf = False):
+
+        if cf is True:
+            """ Prediction stage """
+            if self.stages['Pred'] == 'CTC':
+                prediction = self.Prediction(input.contiguous())
+            else:
+                prediction = self.Prediction(input.contiguous(), text, is_train,
+                                             batch_max_length=self.opt.batch_max_length)
+            return prediction
+
         """ Transformation stage """
         #for i in range(1):
         #    t_input = input[i]
@@ -128,4 +139,9 @@ class Model(nn.Module):
             prediction = self.Prediction(contextual_feature.contiguous(), text, is_train, batch_max_length=self.opt.batch_max_length)
 
         #return prediction, lg_output
+        if self.lgmix is True:
+            output =[]
+            output.append(prediction)
+            output.append(contextual_feature)
+            return output
         return prediction

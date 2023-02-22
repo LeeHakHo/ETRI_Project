@@ -323,7 +323,6 @@ class AlignCollate(object):
             transform = ResizeNormalize((self.imgW, self.imgH))
             image_tensors = [transform(image) for image in images]
             image_tensors = torch.cat([t.unsqueeze(0) for t in image_tensors], 0)
-
         return image_tensors, labels
 
 
