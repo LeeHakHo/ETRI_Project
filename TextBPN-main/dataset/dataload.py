@@ -18,6 +18,7 @@ from collections import OrderedDict
 import torch.backends.cudnn as cudnn
 import random
 import statistics
+np.random.seed(2019)  # np.rand.seed() Leehakho
 
 def pil_load_img(path):
     image = Image.open(path)
@@ -97,6 +98,7 @@ def convex_hull(polys):
     return lower[:-1] + upper[:-1]
 
 def merge_polygon(polys, max):
+    np.random.seed(2019)  # np.rand.seed() Leehakho
     poly = convex_hull(polys)
     if len(poly) == max:
         return poly
@@ -258,6 +260,7 @@ class TextDataset(object):
 
     @staticmethod
     def generate_proposal_point(text_mask, num_points, approx_factor, jitter=0.0, distance=10.0):
+        np.random.seed(2019)  # np.rand.seed() Leehakho
         # get  proposal point in contours
         h, w = text_mask.shape[0:2]
         contours, _ = cv2.findContours(text_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -361,7 +364,7 @@ class TextDataset(object):
                weight_matrix, gt_points, proposal_points, ignore_tags
 
     def get_training_data(self, image, polygons, image_id=None, image_path=None):
-        np.random.seed()
+        np.random.seed(2019) #np.rand.seed() Leehakho
         if cfg.CRAFT is True:
             origin_img = image
             origin_img = ResizeSqr(origin_img, [640, 640]) #Leehakho

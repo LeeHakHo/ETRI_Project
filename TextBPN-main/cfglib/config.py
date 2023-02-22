@@ -20,7 +20,7 @@ config.max_epoch = 20000
 config.start_epoch = 0
 
 # learning rate
-config.lr = 1e-4
+config.lr = 0.0001
 
 # using GPU
 config.cuda = True

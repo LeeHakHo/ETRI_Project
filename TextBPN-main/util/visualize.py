@@ -63,7 +63,8 @@ def visualize_network_output(output_dict, input_dict,epoch, mode='train'):
             # ax4.set_autoscale_on(True)
             im4 = ax4.imshow(angle_pred, cmap=cm.jet)
             # plt.colorbar(im4, shrink=0.5)
-    
+            """
+
             mask_gt = tr_mask[i]
             distance_gt = distance_field[i]
             # gt_flux = 0.999999 * direction_field[i] / (direction_field[i].norm(p=2, dim=0) + 1e-9)
@@ -71,18 +72,20 @@ def visualize_network_output(output_dict, input_dict,epoch, mode='train'):
             norm_gt = np.sqrt(gt_flux[0, :, :] ** 2 + gt_flux[1, :, :] ** 2)
             angle_gt = 180 / math.pi * np.arctan2(gt_flux[0, :, :], gt_flux[1, :, :]+0.00001)
     
-            ax11 = fig.add_subplot(345)
-            # ax11.set_title('mask_gt')
-            # ax11.set_autoscale_on(True)
+            ax11 = fig.add_subplot(243) #345-> 243 Leehakho
+            ax11.set_title('mask_gt')
+            ax11.set_autoscale_on(True)
             im11 = ax11.imshow(mask_gt, cmap=cm.jet)
             # plt.colorbar(im11, shrink=0.5)
     
-            ax22 = fig.add_subplot(346)
-            # ax22.set_title('distance_gt')
-            # ax22.set_autoscale_on(True)
+            ax22 = fig.add_subplot(244) #346-> 244 Leehakho
+            ax22.set_title('distance_gt')
+            ax22.set_autoscale_on(True)
             im22 = ax22.imshow(distance_gt, cmap=cm.jet)
             # plt.colorbar(im22, shrink=0.5)
-    
+
+            # Leehakho
+            """
             ax33 = fig.add_subplot(347)
             # ax33.set_title('norm_gt')
             # ax33.set_autoscale_on(True)

@@ -75,7 +75,7 @@ def train(model, train_loader, criterion, scheduler, optimizer, epoch):
     data_time = AverageMeter()
     end = time.time()
     model.train()
-    # scheduler.step()
+    #scheduler.step()
 
     print('Epoch: {} : LR = {}'.format(epoch, scheduler.get_lr()))
 
@@ -219,7 +219,7 @@ def main():
 
     print('Start training TextGraph.')
     for epoch in range(cfg.start_epoch, cfg.start_epoch + cfg.max_epoch+1):
-        scheduler.step()
+        #scheduler.step() #Leehakho
         train(model, train_loader, criterion, scheduler, optimizer, epoch)
 
     print('End.')

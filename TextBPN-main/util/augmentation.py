@@ -5,7 +5,7 @@ import copy
 import numpy.random as random
 
 from shapely.geometry import Polygon
-
+np.random.seed(2019) #np.rand.seed() Leehakho
 
 ###<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<###
 ###<<<<<<<<<  Function  >>>>>>>>>>>>###
@@ -48,6 +48,7 @@ def crop_first(image, polygons, scale =10):
 ####<<<<<<<<<<<  Class  >>>>>>>>>>>>>####
 ####>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>####
 class Compose(object):
+    np.random.seed(2019)  # np.rand.seed() Leehakho
     """Composes several augmentations together.
     Args:
         transforms (List[Transform]): list of transforms to compose.

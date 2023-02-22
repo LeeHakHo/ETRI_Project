@@ -22,7 +22,7 @@ class Evolution(nn.Module):
         self.adj_num = adj_num
         self.device = device
         self.is_training = is_training
-        self.clip_dis = 48 #16 -> 48
+        self.clip_dis = 32 #16 -> 48
 
         self.iter = 3
         if model == "gcn":
