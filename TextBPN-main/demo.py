@@ -17,7 +17,7 @@ from util.eval import deal_eval_total_text, deal_eval_ctw1500, deal_eval_icdar15
 from bounding_box import bounding_box as bb
 
 import multiprocessing
-#multiprocessing.set_start_method("spawn", force=True)
+multiprocessing.set_start_method("spawn", force=True)
 
 
 def osmkdir(out_dir):

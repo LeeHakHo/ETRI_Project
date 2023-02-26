@@ -27,18 +27,18 @@ class BaseOptions(object):
         self.parser = argparse.ArgumentParser()
 
         # basic opts
-        self.parser.add_argument('--CRAFT', default=True, type=bool)
+        self.parser.add_argument('--CRAFT', default=False, type=bool)
         self.parser.add_argument('--exp_name', default="GCN", type=str,
                                  choices=['Synthtext', 'Totaltext', 'Ctw1500',
                                           'Icdar2015', "MLT2017", 'TD500', 'GCN'], help='Experiment name')
-        self.parser.add_argument("--gpu", default="0", help="set gpu id", type=str)
+        self.parser.add_argument("--gpu", default="6", help="set gpu id", type=str)
         self.parser.add_argument('--resume', default=None, type=str, help='Path to target resume checkpoint')
         self.parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
         self.parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
         self.parser.add_argument('--mgpu', default=False, action='store_true', help='Use multi-gpu to train model')
-        self.parser.add_argument('--save_dir', default='./model/GCN_CRAFT_clip32_lr0.0001_NoScd/', help='Path to save checkpoint models')
-        self.parser.add_argument('--vis_dir', default='./vis/GCN_CRAFT_clip32_lr0.0001_NoScd/', help='Path to save visualization images')
-        self.parser.add_argument('--log_dir', default='./logs/GCN_CRAFT_clip32_lr0.0001_NoScd/', help='Path to tensorboard log')
+        self.parser.add_argument('--save_dir', default='./model/GCN_noneCRAFT_multi/', help='Path to save checkpoint models')
+        self.parser.add_argument('--vis_dir', default='./vis/GCN_noneCRAFT_multi/', help='Path to save visualization images')
+        self.parser.add_argument('--log_dir', default='./logs/GCN_noneCRAFT_multi/', help='Path to tensorboard log')
         self.parser.add_argument('--loss', default='CrossEntropyLoss', type=str, help='Training Loss')
         # self.parser.add_argument('--input_channel', default=1, type=int, help='number of input channels' )
         self.parser.add_argument('--pretrain', default=False, type=str2bool, help='Pretrained AutoEncoder model')
@@ -57,7 +57,7 @@ class BaseOptions(object):
         self.parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
         self.parser.add_argument('--batch_size', default=4, type=int, help='Batch size for training')
         self.parser.add_argument('--optim', default='Adam', type=str, choices=['SGD', 'Adam'], help='Optimizer')
-        self.parser.add_argument('--save_freq', default=100, type=int, help='save weights every # epoch')
+        self.parser.add_argument('--save_freq', default=5, type=int, help='save weights every # epoch')
         self.parser.add_argument('--display_freq', default=10000, type=int, help='display training metrics every # iter')
         self.parser.add_argument('--viz_freq', default=500, type=int, help='visualize training process every # iter')
         self.parser.add_argument('--log_freq', default=500, type=int, help='log to tensorboard every # iterations')
@@ -76,7 +76,7 @@ class BaseOptions(object):
         self.parser.add_argument('--test_size', default=[640, 640], type=int, nargs='+', help='test size')
 
         # eval args00
-        self.parser.add_argument('--checkepoch', default=880, type=int, help='Load checkpoint number')
+        self.parser.add_argument('--checkepoch', default=5, type=int, help='Load checkpoint number')
         self.parser.add_argument('--start_epoch', default=0, type=int, help='start epoch number')
         self.parser.add_argument('--cls_threshold', default=0.875, type=float, help='threshold of pse')
         # self.parser.add_argument('--dis_th', default=0.5, type=float, help='threshold of pse')

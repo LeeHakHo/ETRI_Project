@@ -4,9 +4,9 @@ import os
 
 config = EasyDict()
 
-config.CRAFT = True
+config.CRAFT = False
 
-config.gpu = "0"
+config.gpu = "6"
 
 # dataloader jobs number
 config.num_workers = 24
@@ -31,7 +31,7 @@ config.input_size = 640
 
 # max polygon per image
 # synText, total-text:600; CTW1500: 1200; icdar: ; MLT: ; TD500: .
-config.max_annotation = 1 #64->1 Leehakho
+config.max_annotation = 8 #64->1 Leehakho
 
 # control points number
 config.num_points = 20

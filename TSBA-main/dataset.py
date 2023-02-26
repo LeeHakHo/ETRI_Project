@@ -366,5 +366,5 @@ class CustomDataset(Dataset):
             if self.opt.rgb:
                 img = Image.new('RGB', (self.opt.imgW, self.opt.imgH))
             else:
-                print("error")
+                print("error from custom dataset")
         return (img, self.image_list[index][1])

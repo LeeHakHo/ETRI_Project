@@ -138,10 +138,8 @@ class Model(nn.Module):
         else:
             prediction = self.Prediction(contextual_feature.contiguous(), text, is_train, batch_max_length=self.opt.batch_max_length)
 
-        #return prediction, lg_output
-        if self.lgmix is True:
-            output =[]
-            output.append(prediction)
-            output.append(contextual_feature)
-            return output
-        return prediction
+
+        output =[]
+        output.append(prediction)
+        output.append(contextual_feature)
+        return output

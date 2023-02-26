@@ -121,11 +121,8 @@ def validation(model, criterion, evaluation_loader, converter, opt):
                 preds_str = converter.decode(preds_index.data, preds_size.data)
 
             else:
-                if opt.lgmix is True:
-                    output = model(image, text_for_pred, is_train=False)
-                    preds = output[0]
-                else:
-                    preds = model(image, text_for_pred, is_train=False)
+                output = model(image, text_for_pred, is_train=False)
+                preds = output[0]
                 forward_time = time.time() - start_time
 
                 preds = preds[:, :text_for_loss.shape[1] - 1, :]
@@ -190,7 +187,7 @@ def validation(model, criterion, evaluation_loader, converter, opt):
                 confidence_score_list.append(confidence_score)
                 # print(pred, gt, pred==gt, confidence_score)
         except:
-            print("error")
+            print("error from validation")
 
     accuracy = n_correct / float(length_of_data) * 100
     norm_ED = norm_ED / float(length_of_data)  # ICDAR2019 Normalized Edit Distance
