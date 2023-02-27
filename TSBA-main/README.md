@@ -82,10 +82,14 @@ python3 train.py --train_data data_lmdb_training --sub_train_data sub_data_lmdb_
 ```
 
 ### 4. result
-#### CRAFT_TSBA result ***context mix 구현 후 미완성***
-if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
+#### CRAFT_TSBA result
 ```
 python3 python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path
+```
+
+#### CRAFT_TRBA_context mix module result
+```
+python3 python3 CRAFT_TSBA_result.py --lgmix true --test_folder /home/ohh/dataset/정리/sample/ --model1 /home/ohh/PycharmProject/TSBA-main/saved_models/TRBA_lgmix_0226/iter_60000.pth --Transformation TPS --FeatureExtraction ResNet --SequenceModeling BiLSTM --Prediction Attn --exp lgmix_test --batch_size 16
 ```
 
 <br>You can change --image_folder (default='test') to set input test_data path
