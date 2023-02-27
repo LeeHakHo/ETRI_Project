@@ -48,7 +48,7 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.opt = opt
         self.stages = {'Trans': opt.Transformation, 'Feat': opt.FeatureExtraction,
-                       'Seq': opt.SequenceModeling, 'Pred': opt.Prediction, 'language_classifier': opt.lg}
+                       'Seq': opt.SequenceModeling, 'Pred': opt.Prediction}
 
         """ Transformation """
         if opt.Transformation == 'TPS':
@@ -91,8 +91,8 @@ class Model(nn.Module):
         else:
             raise Exception('Prediction is neither CTC or Attn')
 
-        if opt.lg == True:
-            self.lg_classifer = language_classifier(self.FeatureExtraction_output, opt.hidden_size, opt.num_class)
+        #if opt.lg == True:
+        #    self.lg_classifer = language_classifier(self.FeatureExtraction_output, opt.hidden_size, opt.num_class)
         self.lgmix = opt.lgmix
 
     def forward(self, input, text, is_train=True, cf = False):
