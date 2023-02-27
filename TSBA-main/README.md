@@ -60,33 +60,38 @@ data
 </pre>
 
 ### 2. Convert to LMDB
-
-#### 2.1 AIHhub train + validation 합친 dataset을 lmdb로 변환
-```
-python3 create_lmdb_dataset.py --inputPath data/ --gtFile data/gt_merge.txt --outputPath data_lmdb_training
-```
-
-#### 2.2 대회 train dataset을 lmdb로 변환
 ```
 python3 create_lmdb_dataset.py --inputPath data/ --gtFile data/gt_competition.txt --outputPath data_lmdb_validation
-```
-
-#### 2.3 AIHub train + validation dataset에서 된소리,겹받침있는 image만 추출한 dataset을 lmdb로 변환
-```
-python3 create_lmdb_dataset.py --inputPath data/ --gtFile data/gt_jaeum.txt --outputPath data_lmdb_training_jaeum
 ```
 
 ### 3. Training and Submission
 
 #### 3.1 Train TPS-SENet [1, 2, 5, 3]-BiLSTM-Attn model
 ```
-python3 train.py --train_data data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction SENet --SequenceModeling BiLSTM --Prediction Attn --batch_size 52 --lr 1 --num_iter 67000 --manualSeed 1111
+python3 train.py --train_data data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction SENet --SequenceModeling BiLSTM --Prediction Attn --batch_size 64 --lr 1 --num_iter 100000 --manualSeed 1111 --lgmix False
 ```
 
-#### 3.4 Use  create_submission.py to create a submission file
+#### 3.2 Train TPS-ResNet-BiLSTM-Attn model
+```
+python3 train.py --train_data data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction ResNet --SequenceModeling BiLSTM --Prediction Attn --batch_size 64 --lr 1 --num_iter 100000 --manualSeed 1111 --lgmix False
+```
+
+#### 3.3 Train TPS-SENet-BiLSTM-Attn model + context mix module
+```
+python3 train.py --train_data data_lmdb_training --sub_train_data sub_data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction ResNet --SequenceModeling BiLSTM --Prediction Attn --batch_size 64 --lr 1 --num_iter 100000 --manualSeed 1111 --lgmix True
+```
+
+### 4. result
+#### 4.1 Use  create_submission.py to create a submission file
 if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
 ```
 python3 create_submission.py --exp_name result --model1 SENetL_Jaeum.pth --model2 SENet.pth --model3 SENetL.pth --Transformation TPS --SequenceModeling BiLSTM --Prediction Attn
+
+```
+#### 4.2 Use  create_submission.py to create a submission file *context mix 구현 후 미완성*
+if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
+```
+python3 python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path
 ```
 
 <br>You can change --image_folder (default='test') to set input test_data path
