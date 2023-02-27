@@ -82,7 +82,6 @@ python3 train.py --train_data data_lmdb_training --sub_train_data sub_data_lmdb_
 ```
 
 ### 4. result
-```
 #### CRAFT_TSBA result ***context mix 구현 후 미완성***
 if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
 ```
