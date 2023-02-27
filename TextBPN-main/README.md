@@ -42,7 +42,6 @@ option.checkepoch = epoch num to checkpoint model
 ```  
 
 ## 3.Train
-run:  
 *Modifying the args does not update unless the option.py directly modified, so it is recommended to modify the code script.*
 ```
 python3 train_textBPN.py
@@ -50,7 +49,6 @@ python3 train_textBPN.py
 
 ## 4.Demo
 *Modifying the args does not update unless the option.py directly modified, so it is recommended to modify the code script.*
-run:  
 ```
 python3 demo.py
 ```
