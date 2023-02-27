@@ -1,0 +1,50 @@
+global:
+  name: pretrain-vision-model
+  phase: train
+  stage: pretrain-vision
+  workdir: workdir
+  seed: ~
+ 
+dataset:
+  train: {
+    roots: ['/home/ohh/PycharmProject/TSBA-main/data_lmdb_training/merge_MJ_korean/train'],
+    batch_size: 32
+  }
+  test: {
+    roots: ['/home/ohh/PycharmProject/TSBA-main/data_lmdb_training/merge_MJ_korean/validation'],
+    batch_size: 32
+  }
+  data_aug: True
+  multiscales: False
+  num_workers: 8
+
+training:
+  epochs: 8
+  show_iters: 50
+  eval_iters: 3000
+  save_iters: 3000
+
+optimizer:
+  type: Adam
+  true_wd: False
+  wd: 0.0
+  bn_wd: False
+  clip_grad: 20
+  lr: 0.0001
+  args: {
+    betas: !!python/tuple [0.9, 0.999], # for default Adam 
+  }
+  scheduler: {
+    periods: [6, 2],
+    gamma: 0.1,
+  }
+
+model:
+  name: 'modules.model_vision.BaseVision'
+  checkpoint: ~
+  vision: {
+    loss_weight: 1.,
+    attention: 'position',
+    backbone: 'transformer',
+    backbone_ln: 3,
+  }
