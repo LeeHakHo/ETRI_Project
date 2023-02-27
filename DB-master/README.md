@@ -51,18 +51,6 @@ You can also try distributed training (**Note that the distributed mode is not f
 
 ```CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 train.py path-to-yaml-file --num_gpus 4```
 
-## Improvements
-Note that the current implementation is written by pure Python code except for the deformable convolution operator. Thus, the code can be further optimized by some optimization skills, such as [TensorRT](https://github.com/NVIDIA/TensorRT) for the model forward and efficient C++ code for the [post-processing function](https://github.com/MhLiao/DB/blob/d0d855df1c66b002297885a089a18d50a265fa30/structure/representers/seg_detector_representer.py#L26).
-
-Another option to increase speed is to run the model forward and the post-processing algorithm in parallel through a producer-consumer strategy.
-
-Contributions or pull requests are welcome.
-
-## Third-party implementations
-* Keras implementation: [xuannianz/DifferentiableBinarization](https://github.com/xuannianz/DifferentiableBinarization)
-* DB is included in [OpenCV](https://github.com/opencv/opencv/blob/master/doc/tutorials/dnn/dnn_text_spotting/dnn_text_spotting.markdown)
-* DB is included in [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)
-
 ## Citing the related works
 
 Please cite the related works in your publications if it helps your research:
