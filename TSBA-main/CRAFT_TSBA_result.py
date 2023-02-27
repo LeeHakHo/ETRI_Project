@@ -251,12 +251,12 @@ def GCN(bbox, img, image_name):
         if int(p0[1]) < mp[3]:
             mp[3] = int(p0[1])
 
-    #try:
-    #    bb.add(img, int(mp[0]), int(mp[1]), int(mp[2]), int(mp[3])) # if you want use korean label, save ttf file in bounding_box.py / (img, left, top, right, bottom, label, color)
-    #except:
-    #    print("error")
-    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    #cv2.imwrite('./result/GCN_result/'+image_name + "_result" +'.jpg', img)
+    try:
+       bb.add(img, int(mp[0]), int(mp[1]), int(mp[2]), int(mp[3])) # if you want use korean label, save ttf file in bounding_box.py / (img, left, top, right, bottom, label, color)
+    except:
+       print("error")
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    cv2.imwrite('./result/GCN_result/'+image_name + "_result" +'.jpg', img)
 
 #python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path <- command
 
@@ -298,7 +298,7 @@ parser.add_argument('--PAD', action='store_true', help='whether to keep ratio th
 parser.add_argument('--data_filtering_off', action='store_true', help='for data_filtering_off mode')
 """ Model Architecture """
 parser.add_argument('--Transformation', default='TPS', type=str, help='Transformation stage. None|TPS')
-parser.add_argument('--FeatureExtraction', type=str, required=False,
+parser.add_argument('--FeatureExtraction', default='SENet', type=str, required=False,
                     help='FeatureExtraction stage. VGG|RCNN|ResNet|SENet|SENetL')
 parser.add_argument('--SequenceModeling', default='BiLSTM', type=str,
                     help='SequenceModeling stage. None|BiLSTM')

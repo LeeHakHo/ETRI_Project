@@ -81,9 +81,10 @@ parser.add_argument('--canvas_size', default=1280, type=int, help='image size fo
 parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--show_time', default=False, action='store_true', help='show processing time')
-parser.add_argument('--test_folder', default='/home/ohh/dataset/korean dataset/Validation/ValidationImg/01.가로형간판/', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='/home/ohh/dataset/sample/', type=str, help='folder path to input images')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='', type=str, help='pretrained refiner model')
+parser.add_argument('--result_folder', default='./result/test/', type=str, help='result_folder')
 #parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 
 args = parser.parse_args()
@@ -92,7 +93,7 @@ args = parser.parse_args()
 """ For test images in a folder """
 image_list, _, _ = file_utils.get_files(args.test_folder)
 
-result_folder = './result/crop_image/'
+result_folder = args.result_folder
 if not os.path.isdir(result_folder):
     os.mkdir(result_folder)
 
