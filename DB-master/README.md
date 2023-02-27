@@ -29,6 +29,7 @@ Download Trained models [Baidu Drive](https://pan.baidu.com/s/1vxcdpOswTK6MxJyPI
 
 ### Demo
 Run the model inference with a single image. Here is an example:
+```
 
 ```CUDA_VISIBLE_DEVICES=0 python demo.py experiments/seg_detector/totaltext_resnet18_deform_thre.yaml --image_path datasets/total_text/test_images/img10.jpg --resume path-to-model-directory/totaltext_resnet18 --polygon --box_thresh 0.7 --visualize```
 
