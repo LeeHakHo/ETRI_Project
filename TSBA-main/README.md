@@ -88,7 +88,7 @@ if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive
 python3 create_submission.py --exp_name result --model1 SENetL_Jaeum.pth --model2 SENet.pth --model3 SENetL.pth --Transformation TPS --SequenceModeling BiLSTM --Prediction Attn
 
 ```
-#### 4.2 Use  create_submission.py to create a submission file#### *context mix 구현 후 미완성*
+#### 4.2 Use  create_submission.py to create a submission file #### *context mix 구현 후 미완성*
 if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
 ```
 python3 python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path
