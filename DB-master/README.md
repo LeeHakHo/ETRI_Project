@@ -1,64 +1,21 @@
-## News
-* The ASF module in DBNet++([TPAMI](https://ieeexplore.ieee.org/abstract/document/9726868/), [arxiv](https://arxiv.org/abs/2202.10304)) is released.
-* DB is included in [WeChat OCR engine](https://mp.weixin.qq.com/s/6IGXof3KWVnN8z1i2YOqJA)
-* DB is included in [OpenCV](https://github.com/opencv/opencv/blob/master/doc/tutorials/dnn/dnn_text_spotting/dnn_text_spotting.markdown)
-* DB is included in [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)
-
 # Introduction
 This is a PyToch implementation of DBNet([arxiv](https://arxiv.org/abs/1911.08947)) and DBNet++([TPAMI](https://ieeexplore.ieee.org/abstract/document/9726868/), [arxiv](https://arxiv.org/abs/2202.10304)).  It presents a real-time arbitrary-shape scene text detector, achieving the state-of-the-art performance on standard benchmarks.
 
 Part of the code is inherited from [MegReader](https://github.com/Megvii-CSG/MegReader).
 
-## ToDo List
-
-- [x] Release code
-- [x] Document for Installation
-- [x] Trained models
-- [x] Document for testing and training
-- [x] Evaluation
-- [x] Demo script
-- [x] Release DBNet++ code
-- [x] Release DBNet++ models
-
-
-
 ## Installation
 
 ### Requirements:
-- Python3
+- Python3.9
 - PyTorch == 1.2 
 - GCC >= 4.9 (This is important for PyTorch)
 - CUDA >= 9.0 (10.1 is recommended)
-
-
-```bash
-  # first, make sure that your conda is setup properly with the right environment
-  # for that, check that `which conda`, `which pip` and `which python` points to the
-  # right path. From a clean conda env, this is what you need to do
-
-  conda create --name DB -y
-  conda activate DB
-
-  # this installs the right pip and dependencies for the fresh python
-  conda install ipython pip
 
   # python dependencies
   pip install -r requirement.txt
 
   # install PyTorch with cuda-10.1
   conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-
-  # clone repo
-  git clone https://github.com/MhLiao/DB.git
-  cd DB/
-
-  # build deformable convolution opertor
-  # make sure your cuda path of $CUDA_HOME is the same version as your cuda in PyTorch
-  # make sure GCC >= 4.9
-  # you need to delete the build directory before you re-build it.
-  echo $CUDA_HOME
-  cd assets/ops/dcn/
-  python setup.py build_ext --inplace
 
 ```
 
