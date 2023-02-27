@@ -78,17 +78,12 @@ python3 train.py --train_data data_lmdb_training --valid_data data_lmdb_validati
 
 #### 3.3 Train TPS-SENet-BiLSTM-Attn model + context mix module
 ```
-python3 train.py --train_data data_lmdb_training --sub_train_data sub_data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction ResNet --SequenceModeling BiLSTM --Prediction Attn --batch_size 64 --lr 1 --num_iter 100000 --manualSeed 1111 --lgmix True
+python3 train.py --train_data data_lmdb_training --sub_train_data sub_data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction SENet --SequenceModeling BiLSTM --Prediction Attn --batch_size 64 --lr 1 --num_iter 100000 --manualSeed 1111 --lgmix True
 ```
 
 ### 4. result
-#### 4.1 Use  create_submission.py to create a submission file
-if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
 ```
-python3 create_submission.py --exp_name result --model1 SENetL_Jaeum.pth --model2 SENet.pth --model3 SENetL.pth --Transformation TPS --SequenceModeling BiLSTM --Prediction Attn
-
-```
-#### 4.2 CRAFT_TSBA result ***context mix 구현 후 미완성***
+#### CRAFT_TSBA result ***context mix 구현 후 미완성***
 if you want to use Pretrained files. [**Click.**](https://drive.google.com/drive/folders/1JsWGSfR3_wUUS_3fHz1iBqCCL9J1DvjY?usp=sharing)
 ```
 python3 python3 CRAFT_TSBA_result.py --traind_model CRAFT_pth --model1 TSBA_pth --test_folder test_folder_path
