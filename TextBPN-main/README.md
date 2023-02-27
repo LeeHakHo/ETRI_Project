@@ -13,19 +13,32 @@ Adaptive Boundary Proposal Network for Arbitrary Shape Text Detection； Accepte
   
 ## 2.Arguments
 ```
-You have to go to configs.CDistNet_config.py and edit it yourself.
+Unfortunately it doesn't support mgpu. I recommend going to option.py and config.py with the arguments you want and editing them yourself at the same time.
 
-dist_vocab: Text path of character to use as class
-dist_vocab_size: The number of characters to use as a class
-train.gt_file: path to train lmdb
-train.num_epochs: num of train epochs
-val.gt_file: path to evaulation lmdb
-test.best_acc_test: Whether to use the best accuarcy pth file - mine
-test.s_epoch,e_epoch, avg_e: epochs of the model.pth file to be tested
-test.test_list: ldmb path to test**
-test.model_dir: model.pth path to test
-test.save_dir: Path to save test results
-test.python_path: Your python path
+config.CRAFT = Whether to use CRAFT
+
+config.gpu = GPU to use
+
+config.batch_size = batch_size
+
+config.max_epoch = max_epoch
+
+config.lr = learning rate
+
+config.output_dir = output path to save result
+
+config.max_annotation = maximum number of polygons that can appear in one image
+
+config.num_points = maximum number of points used in a polygon
+
+option.save_dir = path to checkpoint model
+
+option.vis_dir = path to save visualization result
+
+option.save_freq = How many epochs to save the model
+
+option.checkepoch = epoch num to checkpoint model
+
 ```  
 
 ## 3.Train
