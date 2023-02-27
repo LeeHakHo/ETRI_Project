@@ -11,11 +11,11 @@ Part of the code is inherited from [MegReader](https://github.com/Megvii-CSG/Meg
 - GCC >= 4.9 (This is important for PyTorch)
 - CUDA >= 9.0 (10.1 is recommended)
 
-  # python dependencies
-  pip install -r requirement.txt
+# python dependencies
+pip install -r requirement.txt
 
-  # install PyTorch with cuda-10.1
-  conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
+# install PyTorch with cuda-10.1
+conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 
 ```
 
@@ -23,6 +23,7 @@ Part of the code is inherited from [MegReader](https://github.com/Megvii-CSG/Meg
 New: DBNet++ trained models [Google Drive](https://drive.google.com/drive/folders/1buwe_b6ysoZFCJgHMHIr-yHd-hEivQRK?usp=sharing).
 
 Download Trained models [Baidu Drive](https://pan.baidu.com/s/1vxcdpOswTK6MxJyPIJlBkA) (download code: p6u3), [Google Drive](https://drive.google.com/open?id=1T9n0HTP3X3Y_nJ0D1ekMhCQRHntORLJG).
+
 ```
   pre-trained-model-synthtext   -- used to finetune models, not for evaluation
   td500_resnet18
@@ -30,24 +31,6 @@ Download Trained models [Baidu Drive](https://pan.baidu.com/s/1vxcdpOswTK6MxJyPI
   totaltext_resnet18
   totaltext_resnet50
 ```
-
-## Datasets
-The root of the dataset directory can be ```DB/datasets/```.
-
-Download the converted ground-truth and data list [Baidu Drive](https://pan.baidu.com/s/1BPYxcZnLXN87rQKmz9PFYA) (download code: mz0a), [Google Drive](https://drive.google.com/open?id=12ozVTiBIqK8rUFWLUrlquNfoQxL2kAl7). The images of each dataset can be obtained from their official website.
-
-## Testing
-### Prepar dataset
-An example of the path of test images: 
-```
-  datasets/total_text/train_images
-  datasets/total_text/train_gts
-  datasets/total_text/train_list.txt
-  datasets/total_text/test_images
-  datasets/total_text/test_gts
-  datasets/total_text/test_list.txt
-```
-The data root directory and the data list file can be defined in ```base_totaltext.yaml```
 
 ### Config file
 **The YAML files with the name of ```base*.yaml``` should not be used as the training or testing config file directly.**
@@ -85,23 +68,8 @@ CUDA_VISIBLE_DEVICES=0 python eval.py experiments/seg_detector/ic15_resnet50_def
 CUDA_VISIBLE_DEVICES=0 python eval.py experiments/seg_detector/ic15_resnet50_deform_thre.yaml --resume path-to-model-directory/ic15_resnet50 --box_thresh 0.6
 ```
 
-The results should be as follows:
-
-|        Model       	| precision 	| recall 	| F-measure 	| precision (paper) 	| recall (paper) 	| F-measure (paper) 	|
-|:------------------:	|:---------:	|:------:	|:---------:	|:-----------------:	|:--------------:	|:-----------------:	|
-| totaltext-resnet18 	|    88.9   	|  77.6  	|    82.9   	|        88.3       	|      77.9      	|        82.8       	|
-| totaltext-resnet50 	|    88.0   	|  81.5  	|    84.6   	|        87.1       	|      82.5      	|        84.7       	|
-|   td500-resnet18   	|    86.5   	|  79.4  	|    82.8   	|        90.4       	|      76.3      	|        82.8       	|
-|   td500-resnet50   	|    91.1   	|  80.8  	|    85.6   	|        91.5       	|      79.2      	|        84.9       	|
-| ic15-resnet18 (736) |    87.7   	|  77.5  	|    82.3   	|        86.8       	|      78.4     	|        82.3       	|
-| ic15-resnet50 (736) |    91.3   	|  80.3  	|    85.4   	|        88.2       	|      82.7      	|        85.4       	|
-| ic15-resnet50 (1152)|    90.7   	|  84.0  	|    87.2   	|        91.8      	  |      83.2      	|        87.3       	|
-
-
 ```box_thresh``` can be used to balance the precision and recall, which may be different for different datasets to get a good F-measure. ```polygon``` is only used for arbitrary-shape text dataset. The size of the input images are defined in ```validate_data->processes->AugmentDetectionData``` in ```base_*.yaml```.
 
-### Evaluate the speed 
-Set ```adaptive``` to ```False``` in the yaml file to speedup the inference without decreasing the performance. The speed is evaluated by performing a testing image for 50 times to exclude extra IO time.
 
 ```CUDA_VISIBLE_DEVICES=0 python eval.py experiments/seg_detector/totaltext_resnet18_deform_thre.yaml --resume path-to-model-directory/totaltext_resnet18 --polygon --box_thresh 0.7 --speed```
 
