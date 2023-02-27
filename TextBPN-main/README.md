@@ -1,5 +1,6 @@
 # TextBPN
-Adaptive Boundary Proposal Network for Arbitrary Shape Text Detection； Accepted by ICCV2021.  
+Adaptive Boundary Proposal Network for Arbitrary Shape Text Detection； Accepted by ICCV2021.
+TextBPN을 현수막 검출에 사용했습니다.
 ![](https://github.com/GXYM/TextBPN/blob/main/vis/1.png)  
 
 ## 1.Prerequisites 
