@@ -7,11 +7,10 @@ Paper Link : [Arxiv Link](http://arxiv.org/abs/2111.11011)
 
 ![pipline](./utils/fig2_00.png)
 
-## Train
+## arguments
 ***You have to go to configs.CDistNet_config.py and edit it yourself.***
 - **dist_vocab**: Text path of character to use as class
 - **dist_vocab_size**: The number of characters to use as a class
-- 
 - **train.gt_file**: path to train lmdb
 - **train.num_epochs**: num of train epochs
 - **val.gt_file**: path to evaulation lmdb
@@ -21,7 +20,7 @@ Paper Link : [Arxiv Link](http://arxiv.org/abs/2111.11011)
 - **test.model_dir**: model.pth path to test
 - **test.save_dir**: Path to save test results
 - **test.python_path**: Your python path
-- 
+
 ## Datasets
 **The datasets are same as ABINet**
 - Training datasets
