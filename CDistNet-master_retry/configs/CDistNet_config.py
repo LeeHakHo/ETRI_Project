@@ -70,10 +70,10 @@ test = dict(
     rotate=False,  
     best_acc_test=True,  # test best_acc
     eval_all=False,  # test all model_epoch_9_iter_4080.pth
-    s_epoch=29,  # start_epoch
-    e_epoch=29,
+    s_epoch=13,  # start_epoch
+    e_epoch=13,
     avg_s=-1,  
-    avg_e=29,
+    avg_e=13,
     avg_all=False,  
     is_test_gt=False,
     image_dir= None,     #if is_test_gt == False,needn't use image_dir
