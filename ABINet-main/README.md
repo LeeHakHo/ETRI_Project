@@ -52,11 +52,6 @@ Additional flags:
 - `--model_eval [alignment|vision]` which sub-model to use
 - `--image_only` disable dumping visualization of attention masks
 
-## Visualization
-Successful and failure cases on low-quality images:
-
-![cases](./figs/cases.png)
-
 ## Citation
 If you find our method useful for your reserach, please cite
 ```bash 
