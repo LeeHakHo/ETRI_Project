@@ -22,7 +22,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train CDistNet')
     parser.add_argument('--i_path', type=str, default='1.jpg',
                         help='Input image path')
-    parser.add_argument('--model_path', type=str, default='/home/ohh/PycharmProject/CDistNet-master/models/CDistNet_merge_voca2415/epoch29_best_acc.pth',
+    parser.add_argument('--model_path', type=str, default=' ',
                         help='Input model path')
     parser.add_argument('--config', type=str, default='configs/CDistNet_config.py',
                         help='train config file path')
@@ -94,7 +94,7 @@ def origin_process_img(cfg, image_path):
 def test(cfg):
     model = build_CDistNet(cfg)
     model.load_state_dict(torch.load(
-        cfg.model_path))
+        ' '))
     device = torch.device(cfg.test.device)
     model.to(device)
     model.eval()
@@ -126,7 +126,7 @@ def test_one(cfg, args):
     # en = get_parameter_number(model.transformer.encoder)
     # de = get_parameter_number(model.transformer.decoder)
     # print('encoder:{}\ndecoder:{}\n'.format(en,de))
-    model_path = args.model_path
+    model_path = ' '
     model.load_state_dict(torch.load(model_path))
     device = torch.device(cfg.test.device)
     model.to(device)
@@ -135,7 +135,7 @@ def test_one(cfg, args):
     word2idx, idx2word = load_vocab(cfg.dst_vocab, cfg.dst_vocab_size)
 
     # if args['use_origin'] is True:
-    img = origin_process_img(cfg, './test/0119_2.jpg')
+    img = origin_process_img(cfg, 'test/1.jpg')
     # else:
     #     img = preprocess_image(args['img_path'])
 
@@ -147,7 +147,8 @@ def test_one(cfg, args):
         for idx_seq in idx_seqs:
             idx_seq = [x for x in idx_seq if x != 3]
             pred_line = 'Results{}:"'.format(cnt) + ''.join([idx2word[idx] for idx in idx_seq]) + '"'
-            res.append('Vocab Prob:{}\nTotal Score:{}\n{}\n\n'.format(all_hyp[0][cnt],all_scores[0][cnt],pred_line))
+            res.append('Vocab Prob:{}\nTotal Score:{}\n{}\n\n'\
+                .format(all_hyp[0][cnt],all_scores[0][cnt],pred_line))
             cnt = cnt + 1
     print(res)
     return res
