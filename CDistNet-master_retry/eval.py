@@ -228,7 +228,7 @@ def main():
         #path = glob.glob(cfg.test.model_dir + '/*_best_acc.pth')
 
         path = []
-        path.append(cfg.test.model_dir + '/epoch29_best_acc.pth')
+        path.append(cfg.test.model_dir + '/epoch{}_best_acc.pth'.format(cfg.test.e_epoch))
         # for model_path in path2:
         #     print("model: {}".format(model_path))
         #     # eval(cfg, args,os.path.join(cfg.test.model_dir, model_path))
