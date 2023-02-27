@@ -11,7 +11,7 @@ Adaptive Boundary Proposal Network for Arbitrary Shape Text Detection； Accepte
   *opencv-python < 4.5.0*  
   NVIDIA GPU(with 11G or larger GPU memory for inference);  
 
-## 4.Running Evaluation
+## 2.Running Evaluation
 run:  
 ```
 sh eval.sh
@@ -32,6 +32,11 @@ CUDA_LAUNCH_BLOCKING=1 python eval_textBPN.py --exp_name Totaltext --checkepoch 
 #CUDA_LAUNCH_BLOCKING=1 python eval_textBPN.py --exp_name TD500 --checkepoch 680 --dis_threshold 0.3 --cls_threshold 0.925 --test_size 640 1024 --gpu 1
 
 ``` 
+## 3.train
+run:  
+```
+sh eval.sh
+```
 
 ## Citing the related works
 
