@@ -12,12 +12,6 @@ PyTorch implementation for CRAFT text detector that effectively detect text area
 
 <img width="1000" alt="teaser" src="./figures/craft_example.gif">
 
-## Updates
-**13 Jun, 2019**: Initial update
-**20 Jul, 2019**: Added post-processing for polygon result
-**28 Sep, 2019**: Added the trained model on IC15 and the link refiner
-
-
 ## Getting started
 ### Install dependencies
 #### Requirements
@@ -34,7 +28,7 @@ The code for training is not included in this repository, and we cannot release 
 
 * Run with pretrained model
 ``` (with python 3.9)
-python test.py --trained_model=[weightfile] --test_folder=[folder path to test images]
+python craft_test.py --trained_model=[weightfile] --test_folder=[folder path to test images] --result_folder=[folder path to save result image]
 ```
 
 The result image and socre maps will be saved to `./result` by default.
@@ -52,6 +46,7 @@ The result image and socre maps will be saved to `./result` by default.
 * `--test_folder`: folder path to input images
 * `--refine`: use link refiner for sentense-level dataset
 * `--refiner_model`: pretrained refiner model
+* `--result_folder`: path to save result image
 
 
 ## Links
