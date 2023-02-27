@@ -44,22 +44,6 @@ python3 crop_dataset.py
 		⋮
 </pre>
 
-
-#### 1.3 AIHUB의 Training dataset과 validation dataset 합치기
-```
-python3 merge.py 
-```
-
-#### 1.4 자음 파인튜닝을 위해 합친 파일에서 ‘ㄲ’,’ㄸ’,’ㅃ’,’ㅆ’,’ㅉ’, ‘ㄳ’, ‘ㄵ’, ‘ㄶ’, ‘ㄺ’, ‘ㄻ’, ‘ㄼ’, ‘ㄽ’, ‘ㄾ’, ‘ㅀ’, ‘ㅄ’ 를 포함하는 이미지경로-라벨 쌍만 저장
-```
-python3 extract_text.py
-```
-
-#### 1.5 대회에서 제공하는 train.csv로 저장
-```
-python3 create_gt_competition.py
-```
-
 <pre>
 data
 ㄴ train
@@ -97,16 +81,6 @@ python3 create_lmdb_dataset.py --inputPath data/ --gtFile data/gt_jaeum.txt --ou
 #### 3.1 Train TPS-SENet [1, 2, 5, 3]-BiLSTM-Attn model
 ```
 python3 train.py --train_data data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction SENet --SequenceModeling BiLSTM --Prediction Attn --batch_size 52 --lr 1 --num_iter 67000 --manualSeed 1111
-```
-
-#### 3.2 Train TPS-SENet_Large [2, 3, 7, 4]-BiLSTM-Attn model
-```
-python3 train.py --train_data data_lmdb_training --valid_data data_lmdb_validation --Transformation TPS --FeatureExtraction SENetL --SequenceModeling BiLSTM --Prediction Attn --batch_size 44 --lr 1 --num_iter 55000 --manualSeed 6
-```
-
-#### 3.3 2번에서 나온 model을 된소리, 겹받침 fine tuning
-```
-python3 train.py --train_data  data_lmdb_training_jaeum --valid_data data_lmdb_validation --saved_model SENetL.pth --Transformation TPS --FeatureExtraction SENetL --SequenceModeling BiLSTM --Prediction Attn --batch_size 44 --lr 0.3 --num_iter 1000 --manualSeed 6
 ```
 
 #### 3.4 Use  create_submission.py to create a submission file
