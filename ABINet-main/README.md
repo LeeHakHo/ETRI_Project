@@ -11,6 +11,7 @@ ABINet uses a vision model and an explicit language model to recognize text in t
 Get the pretrained models from [BaiduNetdisk(passwd:kwck)](https://pan.baidu.com/s/1b3vyvPwvh_75FkPlp87czQ), [GoogleDrive](https://drive.google.com/file/d/1mYM_26qHUom_5NU7iutHneB_KHlLjL5y/view?usp=sharing). Performances of the pretrained models are summaried as follows:
 
 ## Training
+If you want to learn a new language other than Korean, English, and numbers, modify the txt file path with the character to be used as a class in config.dataset_charset_path in main.py.
 
 1. Pre-train vision model
     ```
