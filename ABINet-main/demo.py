@@ -112,7 +112,7 @@ def main():
         pt_text, _, __ = postprocess(res, charset, config.model_eval)
         logging.info(f'{path}: {pt_text[0]}')
 
-        img_org.save('./output/' + pt_text[0] + "_result" + '.jpg')
+        img_org.save('./output/proposal/' + pt_text[0] + "_result" + '.jpg')
 
 if __name__ == '__main__':
     main()

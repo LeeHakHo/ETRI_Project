@@ -3,6 +3,7 @@ import os
 print(torch.cuda.is_available())
 print(torch.cuda.device_count())
 print(os.getcwd())
+print(torch.__version__)
 
 torch.cuda.empty_cache()
 
@@ -17,3 +18,23 @@ gc.collect()
 #     f.write(char + '\n')
 #     i += 1
 # f.close()
+
+def replace_in_file(file_path, old_str, new_str):
+    # 파일 읽어들이기
+    fr = open(file_path, 'r')
+    lines = fr.readlines()
+    fr.close()
+
+    # old_str -> new_str 치환
+    fw = open(file_path, 'w')
+    for line in lines:
+        #fw.write(line.replace(old_str, new_str))
+        tmp =line.replace(".jpg", "")
+        tmp = tmp.replace(".jpeg", "\n")
+        fw.write(line.replace("\n", "") + '\t' + tmp)
+    fw.close()
+
+
+# 호출: file1.txt 파일에서 comma(,) 없애기
+replace_in_file("/home/ohh/dataset/sum/proposal/list.txt"," ","")
+

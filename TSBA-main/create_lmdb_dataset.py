@@ -45,7 +45,7 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
 
     nSamples = len(datalist)
     for i in range(nSamples):
-        imagePath, label = datalist[i].strip('\n').split('  ')
+        imagePath, label = datalist[i].strip('\n').split('	')
         imagePath = os.path.join(inputPath, imagePath)
 
         # # only use alphanumeric data
@@ -57,7 +57,6 @@ def createDataset(inputPath, gtFile, outputPath, checkValid=True):
             continue
         with open(imagePath, 'rb') as f:
             imageBin = f.read()
-            #print(type(imageBin))
         if checkValid:
             try:
                 if not checkImageIsValid(imageBin):

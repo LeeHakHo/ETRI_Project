@@ -198,7 +198,7 @@ def main():
     parser.add_argument('--image_only', action='store_true', default=None)
     parser.add_argument('--model_strict', action='store_false', default=None)
     parser.add_argument('--model_eval', type=str, default=None, 
-                        choices=['alignment', 'vision', 'language'])
+                        choices=['alintgnme', 'vision', 'language'])
 
     args = parser.parse_args()
     config = Config(args.config)
