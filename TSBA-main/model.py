@@ -23,7 +23,7 @@ import torch
 import torchvision.utils
 
 from modules.transformation import TPS_SpatialTransformerNetwork
-from modules.feature_extraction import VGG_FeatureExtractor, RCNN_FeatureExtractor, ResNet_FeatureExtractor,SENet_FeatureExtractor,SENet_FeatureExtractor_large
+from modules.feature_extraction import VGG_FeatureExtractor, RCNN_FeatureExtractor, ResNet_FeatureExtractor,SENet_FeatureExtractor,SENet_FeatureExtractor_large, vovNet_FeatureExtractor, vovNet_FPN_FeatureExtractor
 from modules.sequence_modeling import BidirectionalLSTM
 from modules.language_classifier import language_classifier
 from modules.prediction import Attention
@@ -68,6 +68,11 @@ class Model(nn.Module):
             self.FeatureExtraction = SENet_FeatureExtractor(opt.input_channel, opt.output_channel)
         elif opt.FeatureExtraction == 'SENetL':
             self.FeatureExtraction = SENet_FeatureExtractor_large(opt.input_channel, opt.output_channel)
+        elif opt.FeatureExtraction == 'vovNet':
+            self.FeatureExtraction = vovNet_FeatureExtractor(opt.input_channel, opt.output_channel)
+        elif opt.FeatureExtraction == 'vovFPNNet':
+            self.FeatureExtraction = vovNet_FPN_FeatureExtractor(opt.input_channel, opt.output_channel)
+            #self.FeatureExtraction = self.FeatureExtraction.to(device)
         else:
             raise Exception('No FeatureExtraction module specified')
         self.FeatureExtraction_output = opt.output_channel  # int(imgH/16-1) * 512
@@ -116,6 +121,7 @@ class Model(nn.Module):
         #        t_input = input[i]
         #        torchvision.utils.save_image(t_input, "./result/tps_image_test/img_t_"+ str(i) + ".jpg")
         """ Feature extraction stage """
+        #input = input.to('cpu')
         visual_feature = self.FeatureExtraction(input)
         #visual_feature, lg = self.FeatureExtraction(input)
 
@@ -123,9 +129,20 @@ class Model(nn.Module):
         #if not self.stages['language_classifier'] == "None":
         #    lg_output = self.lg_classifer(visual_feature)
 
+        #print(visual_feature)
+        if self.stages['Feat'] == 'vovNet':
+
+            visual_feature = visual_feature['stage5']
+            #print(visual_feature.size())
+        if self.stages['Feat'] == 'vovFPNNet':
+            #print(visual_feature.keys()) #p2,~p6
+            visual_feature = visual_feature['p2']
+            #visual_feature = visual_feature.to(input.device)
+        #print(visual_feature.size()) 32 512 1 33
         visual_feature = self.AdaptiveAvgPool(visual_feature.permute(0, 3, 1, 2))  # [b, c, h, w] -> [b, w, c, h]
         visual_feature = visual_feature.squeeze(3)
-
+        #print(visual_feature.device)
+        visual_feature = visual_feature.to(input.device)
         """ Sequence modeling stage """
         if self.stages['Seq'] == 'BiLSTM':
             contextual_feature = self.SequenceModeling(visual_feature)

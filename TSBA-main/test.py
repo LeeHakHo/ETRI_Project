@@ -253,11 +253,15 @@ def validation(model, criterion, evaluation_loader, converter, opt):
                 pred = re.sub(out_of_alphanumeric_case_insensitve, '', pred)
                 gt = re.sub(out_of_alphanumeric_case_insensitve, '', gt)
 
+            #결과 뽑아보는 코드
             if pred == gt:
                 n_correct += 1
-                print(gt)
-            else:
-                print(pred, "/", gt)
+            #    print(gt)
+            # else:
+            #     print(pred, "/", gt)
+
+
+
             # else:
             # torchvision.utils.save_image(image, "./result/incorrect_Eng_eng/" + str(pred) + "_" + str(gt) + ".jpg")
 

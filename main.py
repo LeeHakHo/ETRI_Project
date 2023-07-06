@@ -36,5 +36,5 @@ def replace_in_file(file_path, old_str, new_str):
 
 
 # 호출: file1.txt 파일에서 comma(,) 없애기
-replace_in_file("/home/ohh/dataset/sum/proposal/list.txt"," ","")
+#replace_in_file("/home/ohh/dataset/sum/proposal/list.txt"," ","")
 

@@ -21,8 +21,8 @@ from model import Model
 from test import validation
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-#os.environ["CUDA_VISIBLE_DEVICES"]="2,3,4,5,6,7"
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
 
 def init_for_train(opt):
 
