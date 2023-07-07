@@ -21,8 +21,8 @@ from model import Model
 from test import validation
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
+#os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
 
 def init_for_train(opt):
 
@@ -212,6 +212,7 @@ def train(opt):
 
     while (True):
         try:
+            model.train()
             model, context_feature, cost, labels, preds, target = train_model(train_dataset, converter, model,criterion, optimizer)
             loss_avg.add(cost)
 

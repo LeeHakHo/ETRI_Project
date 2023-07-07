@@ -23,7 +23,9 @@ import torch
 import torchvision.utils
 
 from modules.transformation import TPS_SpatialTransformerNetwork
-from modules.feature_extraction import VGG_FeatureExtractor, RCNN_FeatureExtractor, ResNet_FeatureExtractor,SENet_FeatureExtractor,SENet_FeatureExtractor_large, vovNet_FeatureExtractor, vovNet_FPN_FeatureExtractor
+from modules.feature_extraction import VGG_FeatureExtractor, RCNN_FeatureExtractor, ResNet_FeatureExtractor, \
+    SENet_FeatureExtractor, SENet_FeatureExtractor_large, vovNet_FeatureExtractor, vovNet_FPN_FeatureExtractor, \
+    vovNet_1_FeatureExtractor
 from modules.sequence_modeling import BidirectionalLSTM
 from modules.language_classifier import language_classifier
 from modules.prediction import Attention
@@ -72,6 +74,8 @@ class Model(nn.Module):
             self.FeatureExtraction = vovNet_FeatureExtractor(opt.input_channel, opt.output_channel)
         elif opt.FeatureExtraction == 'vovFPNNet':
             self.FeatureExtraction = vovNet_FPN_FeatureExtractor(opt.input_channel, opt.output_channel)
+        elif opt.FeatureExtraction == 'vovNet1':
+            self.FeatureExtraction = vovNet_1_FeatureExtractor(opt.input_channel, opt.output_channel)
             #self.FeatureExtraction = self.FeatureExtraction.to(device)
         else:
             raise Exception('No FeatureExtraction module specified')
@@ -138,11 +142,11 @@ class Model(nn.Module):
             #print(visual_feature.keys()) #p2,~p6
             visual_feature = visual_feature['p2']
             #visual_feature = visual_feature.to(input.device)
-        #print(visual_feature.size()) 32 512 1 33
+        #print(visual_feature.size()) #32 512 1 33
         visual_feature = self.AdaptiveAvgPool(visual_feature.permute(0, 3, 1, 2))  # [b, c, h, w] -> [b, w, c, h]
         visual_feature = visual_feature.squeeze(3)
         #print(visual_feature.device)
-        visual_feature = visual_feature.to(input.device)
+        visual_feature = visual_feature.to(input.device) #Leehakho
         """ Sequence modeling stage """
         if self.stages['Seq'] == 'BiLSTM':
             contextual_feature = self.SequenceModeling(visual_feature)
