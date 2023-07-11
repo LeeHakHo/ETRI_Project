@@ -378,6 +378,7 @@ def train(opt):
            print("error from train")
            err_msg = traceback.format_exc()
            print(err_msg)
+           sys.exit()
 
 
 if __name__ == '__main__':
