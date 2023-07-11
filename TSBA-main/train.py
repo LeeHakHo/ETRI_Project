@@ -368,9 +368,9 @@ def train(opt):
                 torch.save(
                     model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration + 1}.pth')
 
-            if (iteration + 1) == opt.num_iter:
-                print('end the training')
-                sys.exit()
+            #if (iteration + 1) == opt.num_iter:
+            #    print('end the training')
+            #    sys.exit()
             iteration += 1
         except KeyboardInterrupt:
            sys.exit()
@@ -379,6 +379,10 @@ def train(opt):
            err_msg = traceback.format_exc()
            print(err_msg)
            sys.exit()
+        finally:
+            if (iteration + 1) == opt.num_iter:
+                print('end the training')
+                sys.exit()
 
 
 if __name__ == '__main__':
