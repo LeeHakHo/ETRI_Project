@@ -211,178 +211,338 @@ def train(opt):
     iteration = start_iter
 
     while (True):
-        try:
-            model.train()
-            model, context_feature, cost, labels, preds, target = train_model(train_dataset, converter, model,criterion, optimizer)
-            loss_avg.add(cost)
+        model.train()
+        model, context_feature, cost, labels, preds, target = train_model(train_dataset, converter, model, criterion,
+                                                                          optimizer)
+        loss_avg.add(cost)
+
+        model.zero_grad()
+        cost.backward(retain_graph=True)  # retain_graph=True
+        torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        optimizer.step()
+
+        if opt.lgmix is True:
+            model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
+                sub_train_dataset, converter, model, criterion, optimizer)
+
+            sub_loss_avg.add(sub_cost)
 
             model.zero_grad()
-            cost.backward(retain_graph=True)  # retain_graph=True
+            sub_cost.backward(retain_graph=True)  # retain_graph=True
             torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
             optimizer.step()
 
-            if opt.lgmix is True:
-                model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
-                    sub_train_dataset, converter, model, criterion, optimizer)
+            ms_labels = []
+            sm_labels = []
+            # for ml, sl in zip(labels, sub_labels):
+            #     cf = context_feature[:, :len(ml)//2, :]
+            #     sub_cf = sub_context_feature[:, len(sl)//2:, :]
+            #     ms_context_feature = torch.cat([cf, sub_cf], dim=1)
+            #
+            #     cf = context_feature[:,len(ml) // 2:, :]
+            #     sub_cf = sub_context_feature[:, :len(sl) // 2, :]
+            #     sm_context_feature = torch.cat([sub_cf, cf], dim=1)
+            #
+            #     ms = ml[:len(ml) // 2] + sl[len(sl) // 2:].replace(" ", "")
+            #     sm = sl[len(sl) // 2:] + ml[:len(ml) // 2].replace(" ", "")
+            #     ms_labels.append(ms)
+            #     sm_labels.append(sm)
+            model, context_feature, cost, labels, preds, target = train_model(
+                train_dataset, converter, model, criterion, optimizer)
+            model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
+                sub_train_dataset, converter, model, criterion, optimizer)
+            # print(context_feature.size()) #[512,9,256]
+            ms_context_feature = torch.zeros(context_feature.size())
+            n = 0
+            for ml, sl, cf, sub_cf in zip(labels, sub_labels, context_feature, sub_context_feature):
+                cf = cf[:9 // 2, :]
+                sub_cf = sub_cf[9 // 2:, :]
+                msf = torch.cat([cf, sub_cf], dim=0)
+                ms_context_feature[n, :, :] = msf
+                n += 1
 
-                sub_loss_avg.add(sub_cost)
+                # cf = context_feature
+                # sub_cf = sub_context_feature
+                # sm_context_feature = torch.cat([sub_cf, cf], dim=1)
 
-                model.zero_grad()
-                sub_cost.backward(retain_graph=True)  # retain_graph=True
-                torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
-                optimizer.step()
+                ms = ml[0:len(ml) // 2] + sl[0:len(sl) - (len(sl) // 2)].replace(" ", "")
+                sm = sl[0:len(sl) // 2] + ml[0:len(ml) - (len(ml) // 2)].replace(" ", "")
+                # print(ms)
+                ms_labels.append(ms)
+                sm_labels.append(sm)
 
-                ms_labels = []
-                sm_labels = []
-                # for ml, sl in zip(labels, sub_labels):
-                #     cf = context_feature[:, :len(ml)//2, :]
-                #     sub_cf = sub_context_feature[:, len(sl)//2:, :]
-                #     ms_context_feature = torch.cat([cf, sub_cf], dim=1)
-                #
-                #     cf = context_feature[:,len(ml) // 2:, :]
-                #     sub_cf = sub_context_feature[:, :len(sl) // 2, :]
-                #     sm_context_feature = torch.cat([sub_cf, cf], dim=1)
-                #
-                #     ms = ml[:len(ml) // 2] + sl[len(sl) // 2:].replace(" ", "")
-                #     sm = sl[len(sl) // 2:] + ml[:len(ml) // 2].replace(" ", "")
-                #     ms_labels.append(ms)
-                #     sm_labels.append(sm)
-                model, context_feature, cost, labels, preds, target = train_model(
-                    train_dataset, converter, model, criterion, optimizer)
-                model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
-                    sub_train_dataset, converter, model, criterion, optimizer)
-                #print(context_feature.size()) #[512,9,256]
-                ms_context_feature = torch.zeros(context_feature.size())
-                n=0
-                for ml, sl, cf, sub_cf in zip(labels, sub_labels, context_feature, sub_context_feature):
-                    cf = cf[:9 // 2, :]
-                    sub_cf = sub_cf[9 // 2:, :]
-                    msf = torch.cat([cf, sub_cf], dim=0)
-                    ms_context_feature[n, :, :] = msf
-                    n += 1
+            ms_text, ms_length = converter.encode(ms_labels, batch_max_length=opt.batch_max_length)
+            sm_text, sm_length = converter.encode(sm_labels, batch_max_length=opt.batch_max_length)
 
+            # print(ms_context_feature.size()) #[9,512]
+            ms_preds = model(ms_context_feature, ms_text[:, :-1], cf=True)  # align with Attention.forward
+            ms_target = ms_text[:, 1:]  # without [GO] Symbol
+            ms_cost = criterion(ms_preds.view(-1, ms_preds.shape[-1]), ms_target.contiguous().view(-1))
+            merge_loss_avg.add(ms_cost)
 
+            model.zero_grad()
+            ms_cost.backward(retain_graph=True)  # retain_graph=True
+            torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+            optimizer.step()
 
-                    #cf = context_feature
-                    #sub_cf = sub_context_feature
-                    #sm_context_feature = torch.cat([sub_cf, cf], dim=1)
-
-                    ms = ml[0:len(ml)//2] + sl[0:len(sl) - (len(sl)//2)].replace(" ", "")
-                    sm = sl[0:len(sl)//2] + ml[0:len(ml) - (len(ml)//2)].replace(" ", "")
-                    #print(ms)
-                    ms_labels.append(ms)
-                    sm_labels.append(sm)
-
-                ms_text, ms_length = converter.encode(ms_labels, batch_max_length=opt.batch_max_length)
-                sm_text, sm_length = converter.encode(sm_labels, batch_max_length=opt.batch_max_length)
-
-                #print(ms_context_feature.size()) #[9,512]
-                ms_preds = model(ms_context_feature, ms_text[:, :-1], cf=True)  # align with Attention.forward
-                ms_target = ms_text[:, 1:]  # without [GO] Symbol
-                ms_cost = criterion(ms_preds.view(-1, ms_preds.shape[-1]), ms_target.contiguous().view(-1))
-                merge_loss_avg.add(ms_cost)
-
-                model.zero_grad()
-                ms_cost.backward(retain_graph=True)  # retain_graph=True
-                torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
-                optimizer.step()
-
-                # sm_preds = model(sm_context_feature, sm_text[:, :-1], cf=True)  # align with Attention.forward
-                # sm_target = sm_text[:, 1:]  # without [GO] Symbol
-                #
-                # # preds = torch.cat([preds, ms_preds], dim=0)
-                # #
-                # # target = torch.cat([target, ms_target], dim=0)
-                # # preds = torch.cat([preds, sm_preds], dim=0)
-                # # target = torch.cat([target, sm_target], dim=0)
-                #
-                # sm_cost = criterion(preds.view(-1, sm_preds.shape[-1]), sm_target.contiguous().view(-1))
-                # merge_loss_avg.add(sm_cost)
-                #
-                # model.zero_grad()
-                # sm_cost.backward(retain_graph=True)  # retain_graph=True
-                # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
-                # optimizer.step()
+            # sm_preds = model(sm_context_feature, sm_text[:, :-1], cf=True)  # align with Attention.forward
+            # sm_target = sm_text[:, 1:]  # without [GO] Symbol
+            #
+            # # preds = torch.cat([preds, ms_preds], dim=0)
+            # #
+            # # target = torch.cat([target, ms_target], dim=0)
+            # # preds = torch.cat([preds, sm_preds], dim=0)
+            # # target = torch.cat([target, sm_target], dim=0)
+            #
+            # sm_cost = criterion(preds.view(-1, sm_preds.shape[-1]), sm_target.contiguous().view(-1))
+            # merge_loss_avg.add(sm_cost)
             #
             # model.zero_grad()
-            # if opt.lgmix is True:
-            #     ms_cost.backward(retain_graph=True)
-            #     sm_cost.backward(retain_graph=True)
-            # else:
-            #     cost.backward()
+            # sm_cost.backward(retain_graph=True)  # retain_graph=True
             # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
             # optimizer.step()
+        #
+        # model.zero_grad()
+        # if opt.lgmix is True:
+        #     ms_cost.backward(retain_graph=True)
+        #     sm_cost.backward(retain_graph=True)
+        # else:
+        #     cost.backward()
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        # optimizer.step()
 
-            # if opt.lgmix is True:
-            #     sub_cost.backward(retain_graph=True)
-            #     torch.nn.utils.clip_grad_norm_(model.parameters(),
-            #                                    sub_opt.grad_clip)  # gradient clipping with 5 (Default)
-            #     optimizer.step()
-            # validation part
-            if (
-                    iteration + 1) % opt.valInterval == 0 or iteration == 0:  # To see training progress, we also conduct validation when 'iteration == 0'
-                elapsed_time = time.time() - start_time
-                # for log
-                with open(f'./saved_models/{opt.exp_name}/log_train.txt', 'a') as log:
-                    model.eval()
-                    with torch.no_grad():
-                        valid_loss, current_accuracy, current_norm_ED, preds, confidence_score, labels, infer_time, length_of_data = validation(
-                            model, criterion, valid_loader, converter, opt)
-                    model.train()
+        # if opt.lgmix is True:
+        #     sub_cost.backward(retain_graph=True)
+        #     torch.nn.utils.clip_grad_norm_(model.parameters(),
+        #                                    sub_opt.grad_clip)  # gradient clipping with 5 (Default)
+        #     optimizer.step()
+        # validation part
+        if (
+                iteration + 1) % opt.valInterval == 0 or iteration == 0:  # To see training progress, we also conduct validation when 'iteration == 0'
+            elapsed_time = time.time() - start_time
+            # for log
+            with open(f'./saved_models/{opt.exp_name}/log_train.txt', 'a') as log:
+                model.eval()
+                with torch.no_grad():
+                    valid_loss, current_accuracy, current_norm_ED, preds, confidence_score, labels, infer_time, length_of_data = validation(
+                        model, criterion, valid_loader, converter, opt)
+                model.train()
 
-                    # training loss and validation loss
-                    loss_log = f'[{iteration + 1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f},Sub_Train loss: {sub_loss_avg.val():0.5f},merge_Train loss: {merge_loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
-                    loss_avg.reset()
+                # training loss and validation loss
+                loss_log = f'[{iteration + 1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f},Sub_Train loss: {sub_loss_avg.val():0.5f},merge_Train loss: {merge_loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
+                loss_avg.reset()
 
-                    current_model_log = f'{"Current_accuracy":17s}: {current_accuracy:0.3f}, {"Current_norm_ED":17s}: {current_norm_ED:0.2f}'
+                current_model_log = f'{"Current_accuracy":17s}: {current_accuracy:0.3f}, {"Current_norm_ED":17s}: {current_norm_ED:0.2f}'
 
-                    # keep best accuracy model (on valid dataset)
-                    if current_accuracy > best_accuracy:
-                        best_accuracy = current_accuracy
-                        torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
-                    if current_norm_ED > best_norm_ED:
-                        best_norm_ED = current_norm_ED
-                        torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_norm_ED.pth')
-                    best_model_log = f'{"Best_accuracy":17s}: {best_accuracy:0.3f}, {"Best_norm_ED":17s}: {best_norm_ED:0.2f}'
+                # keep best accuracy model (on valid dataset)
+                if current_accuracy > best_accuracy:
+                    best_accuracy = current_accuracy
+                    torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
+                if current_norm_ED > best_norm_ED:
+                    best_norm_ED = current_norm_ED
+                    torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_norm_ED.pth')
+                best_model_log = f'{"Best_accuracy":17s}: {best_accuracy:0.3f}, {"Best_norm_ED":17s}: {best_norm_ED:0.2f}'
 
-                    loss_model_log = f'{loss_log}\n{current_model_log}\n{best_model_log}'
-                    print(loss_model_log)
-                    log.write(loss_model_log + '\n')
+                loss_model_log = f'{loss_log}\n{current_model_log}\n{best_model_log}'
+                print(loss_model_log)
+                log.write(loss_model_log + '\n')
 
-                    # show some predicted results
-                    dashed_line = '-' * 80
-                    head = f'{"Ground Truth":25s} | {"Prediction":25s} | Confidence Score & T/F'
-                    predicted_result_log = f'{dashed_line}\n{head}\n{dashed_line}\n'
-                    for gt, pred, confidence in zip(labels[:5], preds[:5], confidence_score[:5]):
-                        if 'Attn' in opt.Prediction:
-                            gt = gt[:gt.find('[s]')]
-                            pred = pred[:pred.find('[s]')]
+                # show some predicted results
+                dashed_line = '-' * 80
+                head = f'{"Ground Truth":25s} | {"Prediction":25s} | Confidence Score & T/F'
+                predicted_result_log = f'{dashed_line}\n{head}\n{dashed_line}\n'
+                for gt, pred, confidence in zip(labels[:5], preds[:5], confidence_score[:5]):
+                    if 'Attn' in opt.Prediction:
+                        gt = gt[:gt.find('[s]')]
+                        pred = pred[:pred.find('[s]')]
 
-                        predicted_result_log += f'{gt:25s} | {pred:25s} | {confidence:0.4f}\t{str(pred == gt)}\n'
-                    predicted_result_log += f'{dashed_line}'
-                    print(predicted_result_log)
-                    log.write(predicted_result_log + '\n')
+                    predicted_result_log += f'{gt:25s} | {pred:25s} | {confidence:0.4f}\t{str(pred == gt)}\n'
+                predicted_result_log += f'{dashed_line}'
+                print(predicted_result_log)
+                log.write(predicted_result_log + '\n')
 
-            # save model per 1e+3 iter.
-            if (iteration + 1) % 1e+3 == 0:
-                torch.save(
-                    model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration + 1}.pth')
+        # save model per 1e+3 iter.
+        if (iteration + 1) % 1e+3 == 0:
+            torch.save(
+                model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration + 1}.pth')
 
-            #if (iteration + 1) == opt.num_iter:
-            #    print('end the training')
-            #    sys.exit()
-            iteration += 1
-        except KeyboardInterrupt:
+        if (iteration + 1) == opt.num_iter:
+           print('end the training')
            sys.exit()
-        except:
-           print("error from train")
-           err_msg = traceback.format_exc()
-           print(err_msg)
-           sys.exit()
-        finally:
-            if (iteration + 1) == opt.num_iter:
-                print('end the training')
-                sys.exit()
+        iteration += 1
+
+        # try:
+        #     model.train()
+        #     model, context_feature, cost, labels, preds, target = train_model(train_dataset, converter, model,criterion, optimizer)
+        #     loss_avg.add(cost)
+        #
+        #     model.zero_grad()
+        #     cost.backward(retain_graph=True)  # retain_graph=True
+        #     torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        #     optimizer.step()
+        #
+        #     if opt.lgmix is True:
+        #         model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
+        #             sub_train_dataset, converter, model, criterion, optimizer)
+        #
+        #         sub_loss_avg.add(sub_cost)
+        #
+        #         model.zero_grad()
+        #         sub_cost.backward(retain_graph=True)  # retain_graph=True
+        #         torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        #         optimizer.step()
+        #
+        #         ms_labels = []
+        #         sm_labels = []
+        #         # for ml, sl in zip(labels, sub_labels):
+        #         #     cf = context_feature[:, :len(ml)//2, :]
+        #         #     sub_cf = sub_context_feature[:, len(sl)//2:, :]
+        #         #     ms_context_feature = torch.cat([cf, sub_cf], dim=1)
+        #         #
+        #         #     cf = context_feature[:,len(ml) // 2:, :]
+        #         #     sub_cf = sub_context_feature[:, :len(sl) // 2, :]
+        #         #     sm_context_feature = torch.cat([sub_cf, cf], dim=1)
+        #         #
+        #         #     ms = ml[:len(ml) // 2] + sl[len(sl) // 2:].replace(" ", "")
+        #         #     sm = sl[len(sl) // 2:] + ml[:len(ml) // 2].replace(" ", "")
+        #         #     ms_labels.append(ms)
+        #         #     sm_labels.append(sm)
+        #         model, context_feature, cost, labels, preds, target = train_model(
+        #             train_dataset, converter, model, criterion, optimizer)
+        #         model, sub_context_feature, sub_cost, sub_labels, sub_preds, sub_target = train_model(
+        #             sub_train_dataset, converter, model, criterion, optimizer)
+        #         #print(context_feature.size()) #[512,9,256]
+        #         ms_context_feature = torch.zeros(context_feature.size())
+        #         n=0
+        #         for ml, sl, cf, sub_cf in zip(labels, sub_labels, context_feature, sub_context_feature):
+        #             cf = cf[:9 // 2, :]
+        #             sub_cf = sub_cf[9 // 2:, :]
+        #             msf = torch.cat([cf, sub_cf], dim=0)
+        #             ms_context_feature[n, :, :] = msf
+        #             n += 1
+        #
+        #
+        #
+        #             #cf = context_feature
+        #             #sub_cf = sub_context_feature
+        #             #sm_context_feature = torch.cat([sub_cf, cf], dim=1)
+        #
+        #             ms = ml[0:len(ml)//2] + sl[0:len(sl) - (len(sl)//2)].replace(" ", "")
+        #             sm = sl[0:len(sl)//2] + ml[0:len(ml) - (len(ml)//2)].replace(" ", "")
+        #             #print(ms)
+        #             ms_labels.append(ms)
+        #             sm_labels.append(sm)
+        #
+        #         ms_text, ms_length = converter.encode(ms_labels, batch_max_length=opt.batch_max_length)
+        #         sm_text, sm_length = converter.encode(sm_labels, batch_max_length=opt.batch_max_length)
+        #
+        #         #print(ms_context_feature.size()) #[9,512]
+        #         ms_preds = model(ms_context_feature, ms_text[:, :-1], cf=True)  # align with Attention.forward
+        #         ms_target = ms_text[:, 1:]  # without [GO] Symbol
+        #         ms_cost = criterion(ms_preds.view(-1, ms_preds.shape[-1]), ms_target.contiguous().view(-1))
+        #         merge_loss_avg.add(ms_cost)
+        #
+        #         model.zero_grad()
+        #         ms_cost.backward(retain_graph=True)  # retain_graph=True
+        #         torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        #         optimizer.step()
+        #
+        #         # sm_preds = model(sm_context_feature, sm_text[:, :-1], cf=True)  # align with Attention.forward
+        #         # sm_target = sm_text[:, 1:]  # without [GO] Symbol
+        #         #
+        #         # # preds = torch.cat([preds, ms_preds], dim=0)
+        #         # #
+        #         # # target = torch.cat([target, ms_target], dim=0)
+        #         # # preds = torch.cat([preds, sm_preds], dim=0)
+        #         # # target = torch.cat([target, sm_target], dim=0)
+        #         #
+        #         # sm_cost = criterion(preds.view(-1, sm_preds.shape[-1]), sm_target.contiguous().view(-1))
+        #         # merge_loss_avg.add(sm_cost)
+        #         #
+        #         # model.zero_grad()
+        #         # sm_cost.backward(retain_graph=True)  # retain_graph=True
+        #         # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        #         # optimizer.step()
+        #     #
+        #     # model.zero_grad()
+        #     # if opt.lgmix is True:
+        #     #     ms_cost.backward(retain_graph=True)
+        #     #     sm_cost.backward(retain_graph=True)
+        #     # else:
+        #     #     cost.backward()
+        #     # torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        #     # optimizer.step()
+        #
+        #     # if opt.lgmix is True:
+        #     #     sub_cost.backward(retain_graph=True)
+        #     #     torch.nn.utils.clip_grad_norm_(model.parameters(),
+        #     #                                    sub_opt.grad_clip)  # gradient clipping with 5 (Default)
+        #     #     optimizer.step()
+        #     # validation part
+        #     if (
+        #             iteration + 1) % opt.valInterval == 0 or iteration == 0:  # To see training progress, we also conduct validation when 'iteration == 0'
+        #         elapsed_time = time.time() - start_time
+        #         # for log
+        #         with open(f'./saved_models/{opt.exp_name}/log_train.txt', 'a') as log:
+        #             model.eval()
+        #             with torch.no_grad():
+        #                 valid_loss, current_accuracy, current_norm_ED, preds, confidence_score, labels, infer_time, length_of_data = validation(
+        #                     model, criterion, valid_loader, converter, opt)
+        #             model.train()
+        #
+        #             # training loss and validation loss
+        #             loss_log = f'[{iteration + 1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f},Sub_Train loss: {sub_loss_avg.val():0.5f},merge_Train loss: {merge_loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
+        #             loss_avg.reset()
+        #
+        #             current_model_log = f'{"Current_accuracy":17s}: {current_accuracy:0.3f}, {"Current_norm_ED":17s}: {current_norm_ED:0.2f}'
+        #
+        #             # keep best accuracy model (on valid dataset)
+        #             if current_accuracy > best_accuracy:
+        #                 best_accuracy = current_accuracy
+        #                 torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
+        #             if current_norm_ED > best_norm_ED:
+        #                 best_norm_ED = current_norm_ED
+        #                 torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_norm_ED.pth')
+        #             best_model_log = f'{"Best_accuracy":17s}: {best_accuracy:0.3f}, {"Best_norm_ED":17s}: {best_norm_ED:0.2f}'
+        #
+        #             loss_model_log = f'{loss_log}\n{current_model_log}\n{best_model_log}'
+        #             print(loss_model_log)
+        #             log.write(loss_model_log + '\n')
+        #
+        #             # show some predicted results
+        #             dashed_line = '-' * 80
+        #             head = f'{"Ground Truth":25s} | {"Prediction":25s} | Confidence Score & T/F'
+        #             predicted_result_log = f'{dashed_line}\n{head}\n{dashed_line}\n'
+        #             for gt, pred, confidence in zip(labels[:5], preds[:5], confidence_score[:5]):
+        #                 if 'Attn' in opt.Prediction:
+        #                     gt = gt[:gt.find('[s]')]
+        #                     pred = pred[:pred.find('[s]')]
+        #
+        #                 predicted_result_log += f'{gt:25s} | {pred:25s} | {confidence:0.4f}\t{str(pred == gt)}\n'
+        #             predicted_result_log += f'{dashed_line}'
+        #             print(predicted_result_log)
+        #             log.write(predicted_result_log + '\n')
+        #
+        #     # save model per 1e+3 iter.
+        #     if (iteration + 1) % 1e+3 == 0:
+        #         torch.save(
+        #             model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration + 1}.pth')
+        #
+        #     #if (iteration + 1) == opt.num_iter:
+        #     #    print('end the training')
+        #     #    sys.exit()
+        #     iteration += 1
+        # except KeyboardInterrupt:
+        #    sys.exit()
+        # except:
+        #    print("error from train")
+        #    err_msg = traceback.format_exc()
+        #    print(err_msg)
+        #    sys.exit()
+        # finally:
+        #     if (iteration + 1) == opt.num_iter:
+        #         print('end the training')
+        #         sys.exit()
 
 
 if __name__ == '__main__':

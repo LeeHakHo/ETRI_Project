@@ -403,7 +403,8 @@ __all__ = ["VoVNet", "build_vovnet_backbone", "build_vovnet_fpn_backbone"]
 
 _NORM = False
 NORM = "FrozenBN"
-CONV_BODY = "V-57-eSE"
+#CONV_BODY = "V-57-eSE"
+CONV_BODY = "V-99-eSE"
 #CONV_BODY = "V-19-slim-eSE"
 def setup():
     """
@@ -1164,13 +1165,13 @@ class _OSA_module_1(nn.Module):
         in_channel = in_ch
         for i in range(layer_per_block):
             self.layers.append(nn.Sequential(
-                OrderedDict(conv3x3(in_channel, stage_ch, module_name, i))))
+                OrderedDict(conv3x3_1(in_channel, stage_ch, module_name, i))))
             in_channel = stage_ch
 
         # feature aggregation
         in_channel = in_ch + layer_per_block * stage_ch
         self.concat = nn.Sequential(
-            OrderedDict(conv1x1(in_channel, concat_ch, module_name, 'concat')))
+            OrderedDict(conv1x1_1(in_channel, concat_ch, module_name, 'concat')))
 
     def forward(self, x):
         identity_feat = x
