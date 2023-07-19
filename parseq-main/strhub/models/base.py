@@ -125,9 +125,10 @@ class BaseSystem(pl.LightningModule, ABC):
             ned += edit_distance(pred, gt) / max(len(pred), len(gt))
             if pred == gt:
                 correct += 1
+                #save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_merge_wrong/" + gt + "_" + pred + ".png")
             #LeeHakho
             # else:
-            #     save_image(images, "/home/ohh/PycharmProject/parseq-main/samples/" + gt + "_" + pred + ".png")
+            #     save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_merge_wrong/" + gt + "_" + pred + ".png")
             total += 1
             label_length += len(pred)
         return dict(output=BatchResult(total, correct, ned, confidence, label_length, loss, loss_numel))
@@ -141,6 +142,8 @@ class BaseSystem(pl.LightningModule, ABC):
         total_n_correct = 0
         total_norm_ED = 0
         total_size = 0
+        #Leehakho
+        #total_size += 0.00000001
         for result in outputs:
             result = result['output']
             total_loss += result.loss_numel * result.loss
@@ -148,6 +151,7 @@ class BaseSystem(pl.LightningModule, ABC):
             total_n_correct += result.correct
             total_norm_ED += result.ned
             total_size += result.num_samples
+        #print(total_n_correct, total_size)
         acc = total_n_correct / total_size
         ned = (1 - total_norm_ED / total_size)
         loss = total_loss / total_loss_numel

@@ -37,8 +37,8 @@ class CharsetAdapter:
             label = label.lower()
         elif self.uppercase_only:
             label = label.upper()
-        # Remove unsupported characters
         label = self.unsupported.sub('', label)
+
         return label
 
 

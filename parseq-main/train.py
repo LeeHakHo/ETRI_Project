@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import math
 from pathlib import Path
 
@@ -29,6 +30,10 @@ from pytorch_lightning.utilities.model_summary import summarize
 from strhub.data.module import SceneTextDataModule
 from strhub.models.base import BaseSystem
 from strhub.models.utils import get_pretrained_weights
+
+import random
+import numpy as np
+import torch
 
 
 # Copied from OneCycleLR
@@ -50,6 +55,13 @@ def get_swa_lr_factor(warmup_pct, swa_epoch_start, div_factor=25, final_div_fact
 
 @hydra.main(config_path='configs', config_name='main', version_base='1.2')
 def main(config: DictConfig):
+    #Leehakho
+    seed = 2023
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
     trainer_strategy = None
     with open_dict(config):
         # Resolve absolute path to data.root_dir
@@ -67,9 +79,6 @@ def main(config: DictConfig):
             trainer_strategy = DDPStrategy(find_unused_parameters=False, gradient_as_bucket_view=True)
             # Scale steps-based config
             config.trainer.val_check_interval //= devices
-
-            #LeeHakho
-            config.trainer.val_check_interval =238
 
             if config.trainer.get('max_steps', -1) > 0:
                 config.trainer.max_steps //= devices

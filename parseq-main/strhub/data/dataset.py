@@ -20,10 +20,12 @@ from pathlib import Path, PurePath
 from typing import Callable, Optional, Union
 
 import lmdb
-from PIL import Image
+from PIL import Image,ImageFile
 from torch.utils.data import Dataset, ConcatDataset
 
 from strhub.data.utils import CharsetAdapter
+
+import re
 
 log = logging.getLogger(__name__)
 
@@ -96,11 +98,22 @@ class LmdbDataset(Dataset):
                     label = ''.join(label.split())
                 # Normalize unicode composites (if any) and convert to compatible ASCII characters
                 if normalize_unicode:
-                    label = unicodedata.normalize('NFKD', label).encode('ascii', 'ignore').decode()
+
+                    #Leehakho
+                    # Unicode 정규화(NFKD)를 수행하여 ASCII로 변환
+                    label = unicodedata.normalize('NFC', label).encode('UTF-8', 'ignore').decode()
+
+                    # label = unicodedata.normalize('NFKD', label).encode('ascii', 'ignore').decode()
+
+                    #Leehakho 겹치는 단어는 없어지는게 맞음
+                    # 정규표현식을 사용하여 한글, 영어, 숫자만 추출
+                    #label = re.sub(charset, '', label)
+
                 # Filter by length before removing unsupported characters. The original label might be too long.
                 if len(label) > max_label_len:
                     continue
                 label = charset_adapter(label)
+                #print(label)
                 # We filter out samples which don't contain any supported characters
                 if not label:
                     continue
@@ -119,6 +132,9 @@ class LmdbDataset(Dataset):
         return self.num_samples
 
     def __getitem__(self, index):
+        #Leehakho
+        #ImageFile.LOAD_TRUNCATED_IMAGES = True
+
         if self.unlabelled:
             label = index
         else:
