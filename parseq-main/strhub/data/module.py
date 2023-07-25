@@ -30,12 +30,15 @@ class SceneTextDataModule(pl.LightningDataModule):
     #TEST_BENCHMARK = ('korean_valid', 'proposal')
     #Leehakho
     #TEST_NEW = ('korean_valid','IIIT5k', 'SVT', 'IC13_1015', 'IC15_2077', 'SVTP', 'CUTE80')
-    TEST_NEW = ('proposal','SVT') # 'test_chinese'
+    TEST_CHINESE = ('IIIT5k', 'SVT', 'IC13_1015', 'IC15_2077', 'SVTP', 'CUTE80','chinese') # 'test_chinese'
+    #TEST_CHINESE = ('SVT', 'SVT')  # 'test_chinese'
+
     #TEST_NEW = ('korean_valid','proposal')
     #TEST_NEW = ('ArT', 'COCOv1.4', 'Uber')
 
 
-    TEST_ALL = tuple(set(TEST_BENCHMARK_SUB + TEST_BENCHMARK + TEST_NEW))
+    TEST_ALL = tuple(set(TEST_BENCHMARK_SUB + TEST_BENCHMARK + TEST_CHINESE))
+    #TEST_ALL = tuple(set(TEST_NEW))
 
     def __init__(self, root_dir: str, train_dir: str, img_size: Sequence[int], max_label_length: int,
                  charset_train: str, charset_test: str, batch_size: int, num_workers: int, augment: bool,
@@ -79,6 +82,7 @@ class SceneTextDataModule(pl.LightningDataModule):
         if self._train_dataset is None:
             transform = self.get_transform(self.img_size, self.augment)
             root = PurePath(self.root_dir, 'train', self.train_dir)
+
             self._train_dataset = build_tree_dataset(root, self.charset_train, self.max_label_length,
                                                      self.min_image_dim, self.remove_whitespace, self.normalize_unicode,
                                                      transform=transform)
@@ -89,8 +93,9 @@ class SceneTextDataModule(pl.LightningDataModule):
         if self._val_dataset is None:
             transform = self.get_transform(self.img_size)
             #Leehakho
-            #root=PurePath(self.root_dir, 'test')
-            root = PurePath(self.root_dir, 'test_chinese')
+            root=PurePath(self.root_dir, 'test', self.train_dir)
+
+            #root = PurePath(self.root_dir, 'test')
             self._val_dataset = build_tree_dataset(root, self.charset_test, self.max_label_length,
                                                    self.min_image_dim, self.remove_whitespace, self.normalize_unicode,
                                                    transform=transform)
@@ -108,7 +113,7 @@ class SceneTextDataModule(pl.LightningDataModule):
 
     def test_dataloaders(self, subset):
         transform = self.get_transform(self.img_size, rotation=self.rotation)
-        root = PurePath(self.root_dir, 'test')
+        root = PurePath(self.root_dir, 'test/eng_cn')
         datasets = {s: LmdbDataset(str(root / s), self.charset_test, self.max_label_length,
                                    self.min_image_dim, self.remove_whitespace, self.normalize_unicode,
                                    transform=transform) for s in subset}

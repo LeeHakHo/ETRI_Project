@@ -37,8 +37,11 @@ class CharsetAdapter:
             label = label.lower()
         elif self.uppercase_only:
             label = label.upper()
-        label = self.unsupported.sub('', label)
 
+        #Leehakho
+        #print(label)
+        label = self.unsupported.sub('', label)
+        #print(label)
         return label
 
 

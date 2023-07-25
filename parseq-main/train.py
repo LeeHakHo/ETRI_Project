@@ -94,7 +94,6 @@ def main(config: DictConfig):
     print(summarize(model, max_depth=1 if model.hparams.name.startswith('parseq') else 2))
 
     datamodule: SceneTextDataModule = hydra.utils.instantiate(config.data)
-
     checkpoint = ModelCheckpoint(monitor='val_accuracy', mode='max', save_top_k=3, save_last=True,
                                  filename='{epoch}-{step}-{val_accuracy:.4f}-{val_NED:.4f}')
     swa_epoch_start = 0.75
