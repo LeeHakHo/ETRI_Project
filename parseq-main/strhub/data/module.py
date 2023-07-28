@@ -31,6 +31,7 @@ class SceneTextDataModule(pl.LightningDataModule):
     #Leehakho
     #TEST_NEW = ('korean_valid','IIIT5k', 'SVT', 'IC13_1015', 'IC15_2077', 'SVTP', 'CUTE80')
     TEST_CHINESE = ('IIIT5k', 'SVT', 'IC13_1015', 'IC15_2077', 'SVTP', 'CUTE80','chinese') # 'test_chinese'
+    TEST_INFERENCE = ('inference')
     #TEST_CHINESE = ('SVT', 'SVT')  # 'test_chinese'
 
     #TEST_NEW = ('korean_valid','proposal')

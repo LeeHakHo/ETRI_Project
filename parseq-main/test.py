@@ -77,15 +77,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('checkpoint', help="Model checkpoint (or 'pretrained=<model_id>')")
     parser.add_argument('--data_root', default='data')
-    parser.add_argument('--batch_size', type=int, default=512)
+    parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--cased', action='store_true', default=False, help='Cased comparison')
     parser.add_argument('--punctuation', action='store_true', default=False, help='Check punctuation')
     parser.add_argument('--new', action='store_true', default=True, help='Evaluate on new benchmark datasets')
-    parser.add_argument('--data', type=str, default="eng_cn", help='Evaluate on new benchmark datasets')
     parser.add_argument('--rotation', type=int, default=0, help='Angle of rotation (counter clockwise) in degrees.')
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--charset', default='eng_cn')
+    parser.add_argument('--data', type=str, default="eng_cn", help='Evaluate on new benchmark datasets')
+    parser.add_argument('--inference', action='store_true', default=True, help='Evaluate on new benchmark datasets')
     args, unknown = parser.parse_known_args()
     kwargs = parse_model_args(unknown)
 
@@ -205,8 +206,10 @@ def main():
     print(f'Additional keyword arguments: {kwargs}')
     model = load_from_checkpoint(args.checkpoint, **kwargs).eval().to(args.device)
     hp = model.hparams
+
     datamodule = SceneTextDataModule(args.data_root, '_unused_', hp.img_size, hp.max_label_length, hp.charset_train,
                                      hp.charset_test, args.batch_size, args.num_workers, False, rotation=args.rotation)
+
 
     # Leehakho
     if args.data == "chinese":
@@ -215,7 +218,6 @@ def main():
         result_groups = {
             'Chinese': SceneTextDataModule.TEST_CHINESE
         }
-
     elif args.data == "eng_cn":
         test_set = SceneTextDataModule.TEST_BENCHMARK_SUB + SceneTextDataModule.TEST_BENCHMARK + SceneTextDataModule.TEST_CHINESE
 
@@ -224,7 +226,6 @@ def main():
             'Benchmark': SceneTextDataModule.TEST_BENCHMARK,
             'Chinese': SceneTextDataModule.TEST_CHINESE
         }
-
     else:
         test_set = SceneTextDataModule.TEST_BENCHMARK_SUB + SceneTextDataModule.TEST_BENCHMARK
         result_groups = {
@@ -235,6 +236,26 @@ def main():
 
     results = {}
     max_width = max(map(len, test_set))
+
+    if args.inference:
+        from torchvision.io.image import read_image
+        import torchvision
+        from torchvision import transforms
+
+        inference_set = SceneTextDataModule.TEST_INFERENCE
+
+        trans = transforms.Compose([transforms.Resize((32, 128)),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        inferenceset = torchvision.datasets.ImageFolder(root='/home/ohh/PycharmProject/parseq-main/demo_images/',
+                                                    transform=trans)
+        trainloader = torch.utils.data.DataLoader(inferenceset, batch_size=1, shuffle=True)
+        #img = read_image("/home/ohh/PycharmProject/parseq-main/demo_images/cc.png")
+        for img,label in trainloader:
+            res = model.test_step((img.to(model.device), "labels"), -1)['output']
+        return res
+
+
     for name, dataloader in datamodule.test_dataloaders(test_set).items():
         total = 0
         correct = 0

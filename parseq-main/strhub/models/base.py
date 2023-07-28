@@ -125,10 +125,19 @@ class BaseSystem(pl.LightningModule, ABC):
             ned += edit_distance(pred, gt) / max(len(pred), len(gt))
             if pred == gt:
                 correct += 1
-                #save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_merge_wrong/" + gt + "_" + pred + ".png")
+                # try:
+                #     #save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_merge_wrong/" + gt + "_" + pred + ".png")
+                #     #save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_eng_correct/" + gt + "_" + pred + ".png")
+                #     save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_compare/" + gt + "_" + pred + "_chinese.png")
+                # except:
+                #     print(gt + "_" + pred)
             #LeeHakho
-            # else:
-            #     save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_merge_wrong/" + gt + "_" + pred + ".png")
+            else:
+            #     try:
+                save_image(images, "/home/ohh/PycharmProject/parseq-main/sample_inference/" + gt + "_" + pred + ".png")
+            #         #save_image(images,"/home/ohh/PycharmProject/parseq-main/sample_compare/" + gt + "_" + pred + ".png")
+            #     except:
+            #         print(gt + "_" + pred)
             total += 1
             label_length += len(pred)
         return dict(output=BatchResult(total, correct, ned, confidence, label_length, loss, loss_numel))
